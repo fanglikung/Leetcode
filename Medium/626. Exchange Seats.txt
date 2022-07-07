@@ -56,11 +56,15 @@ SELECT s1.[id]
   on s1.id=s2.id-1
   left join [56_seats]s3
   on s1.id=s3.id+1
+
+
 --#2 solution
 --SELECT [id]
 --      , case when id%2=0 then lag([student])over(order by id)
 --		else isnull(lead([student])over(order by id) ,[student])end as student 
 --  FROM [master].[dbo].[56_seats]
+
+
 --#3  solution other
 --select row_number() over (order by (case when id%2=1 then id+1 else id-1 end )) as id, 
 --student
