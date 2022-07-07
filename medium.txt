@@ -1,0 +1,1014 @@
+#65
+#1 65
+select [business_id]
+from(
+SELECT [business_id]
+      ,[event_type]
+      ,case when [occurences]>avg(occurences)over (partition by [event_type]) then 1 else 0 end r
+  FROM [master].[dbo].[65_events]
+  )a
+  group by [business_id]
+  having sum(r)>1
+#2 65
+select c.[business_id]
+from(
+	select 
+		 a.[business_id],
+		 count([event_type]) as c 
+	from(
+		SELECT [business_id]
+			  ,[event_type]
+			  ,[occurences]
+			  ,avg(occurences) over (partition by [event_type]) as av
+		FROM [master].[dbo].[65_events]
+	)a
+		where a.[occurences]>a.av
+		group by a.[business_id]
+)c
+where c>1
+
+#94
+#my
+select 
+		b.id,
+		ac.name
+from(
+	select a.*,
+			dateadd(day,-(rank() over (partition by a.id order by a.login_date)),a.login_date ) as dd
+	from(
+		select
+			id,
+			login_date 
+		from [94_logins]
+		group by
+			id,
+			login_date
+	)a
+)b
+left join [94_accounts] ac
+on ac.id=b.id
+group by 
+	b.id, 
+	b.dd,
+	ac.name
+having count(*)>=5
+
+#other
+with t1 as (
+select id,login_date,
+lead(login_date,4) over(partition by id order by login_date) date_5
+from (select distinct * from [94_logins]) b
+)
+
+select a.id, a.name from t1
+inner join [94_accounts] a 
+on t1.id = a.id
+where datediff(day,login_date,t1.date_5) > 4
+order by id
+
+#77
+with a as (select 
+	activity,
+	count(*) as n
+from [77_friends] 
+group by 
+	activity)
+
+select 
+	activity
+from a
+where n<(select max(n) from a) and n>(select min(n) from a) 
+
+#55
+#1 #55
+with t1 as (
+select employee_id as e1,employee_id,manager_id,1 as ReportLevel
+from [55_employees] 
+union all
+select t1.e1,b.employee_id,b.manager_id,t1.ReportLevel+1
+from [55_employees] b
+join t1
+on t1.manager_id=b.employee_id
+where b.employee_id!=b.manager_id
+)
+
+select e1
+from t1
+where employee_id!=1 and manager_id=1 and ReportLevel <=4 
+order by e1, ReportLevel;
+
+#2 #55
+with cte as (
+SELECT [employee_id]
+      ,[employee_name]
+      ,[manager_id]
+	  ,0 as t
+  FROM [master].[dbo].[55_employees]
+  where [employee_id]!=[manager_id]--去掉自己是自己的direct manager
+  union all
+  SELECT c.[employee_id]
+      ,c.[employee_name]
+      ,e1.[manager_id]
+	  ,t+1
+  FROM cte c
+  inner join [55_employees] e1
+  on c.[manager_id]=e1.[employee_id]
+  where c.[manager_id]!=e1.[manager_id] --去掉自己的上一個的manager是自己的manager
+		and c.[manager_id]!=1 --去掉已經找到indirect manager的[employee_id]
+		and t<4--The indirect relation between managers will not exceed 3 managers 
+		)
+
+  select *
+  from cte
+  where   [manager_id]=1 
+  order by t,[manager_id]
+#66 #1
+select *
+from(
+select
+	sale_date,
+	sold_num-lead(sold_num)over (partition by sale_date order by fruit asc) as diff
+from [66_sales])s
+where s.diff is not null
+#66 #2
+  SELECT a.[sale_date]
+      ,a.[sold_num]-o.[sold_num] diff
+  FROM [master].[dbo].[66_sales] a
+  inner join
+(  SELECT [sale_date]
+      ,[fruit]
+      ,[sold_num]
+  FROM [master].[dbo].[66_sales]
+  where [fruit]='oranges')o
+  on o.[sale_date]=a.[sale_date]
+    where a.[fruit]='apples'
+
+#81
+#my
+select distinct a.viewer_id as id
+from(
+select
+	view_date,
+	viewer_id,
+	count(distinct article_id ) as n
+from [81_views]
+group by view_date,
+		viewer_id)a
+where a.n>1
+
+#other
+select distinct viewer_id as id
+from [81_views]
+group by view_date,
+		viewer_id
+having count(distinct article_id ) >1
+
+#77 #1
+SELECT [company_id]
+      ,[employee_id]
+      ,[employee_name]
+	  ,cast (round([salary]-[salary]*(case when max(salary)over (partition by [company_id])<1000 then 0
+	  when max(salary)over (partition by [company_id]) between 1000 and 10000 then 0.24
+	  when max(salary)over (partition by [company_id])>10000 then 0.49 end ),0) as int) salary 
+  FROM [master].[dbo].[74_salaries]
+#77 #2
+with t1 as (
+select company_id, employee_id, employee_name, salary as sa, max(salary) over(partition by company_id) as maximum
+from [74_salaries])
+
+select company_id, employee_id, employee_name,
+case when t1.maximum<1000 then t1.sa
+when t1.maximum between 1000 and 10000 then round(t1.sa*.76,0)
+else round(t1.sa*.51,0)
+end as salary
+from t1
+
+#61
+SELECT [stock_name]
+      ,sum([price]*(case when　[operation]='Buy' then -1 else 1 end)) capital_gain_loss 
+  FROM [master].[dbo].[61_stocks]
+  group by [stock_name]
+
+#52 #1
+select 
+	distinct [Num] as ConsecutiveNums 
+from(
+	SELECT 
+		[Num]
+		,[Id]-( rank() over(partition by Num order by [Id])) as diff
+	FROM [master].[dbo].[52_consecutively]
+	)t1
+group by 
+		t1.Num,
+		t1.diff
+having count(*)>2
+
+#52 #2
+select distinct a.num as ConsecutiveNums
+from(
+select *,
+lag(num) over() as prev,
+lead(num) over() as next
+from logs) a
+where a.num = a.prev and a.num=a.next
+
+#52 #3
+select　min(Id)ConsecutiveNums 
+from(
+select [Id]
+      ,[Num]
+	  ,sum(r)over(order by [Id]) rr
+from(
+SELECT  [Id]
+      ,[Num]
+	  ,case when lag([Num])over(order by [Id])=Num then 0 else 1 end as r
+  FROM [master].[dbo].[52_consecutively]
+  )a
+)b
+group by rr
+having count(*)>2
+
+#87
+select 
+	d.dept_name,
+	count(s.student_id ) as  student_number
+from [87_department] d
+left join [87_student] s
+on d.dept_id =s.dept_id 
+group by d.dept_name
+order by student_number desc,d.dept_name
+
+#110
+with a as (SELECT
+	[id]
+	,substring([phone_number],0,4) as country_code 
+  FROM [master].[dbo].[110_person]),
+c as(
+select 
+	(select country_code from a where id=caller_id) as country_code,
+	duration
+from [110_calls]
+union all
+select 
+	(select country_code from a where id=callee_id) as country_code,
+	duration
+from [110_calls])
+
+select co.name   as country    
+from [110_country] co
+join(
+select 
+	distinct country_code,
+	avg(duration) over (partition by country_code) as avg_signal ,
+	avg(duration)over() as avg_global
+from c
+	)d
+on co.country_code =d.country_code
+where d.avg_signal>d.avg_global
+
+#72 #1 Customers who bought a, b but not c
+select 
+	distinct customer_id ,
+	(select customer_name from [72_customers ] c where c.customer_id=o.customer_id ) as customer_name
+from
+	[72_orders] o
+group by 
+	customer_id
+having sum(case when product_name ='A' then 1 else 0 end)>=1 and
+		sum(case when product_name ='B' then 1 else 0 end)>=1 and
+		sum(case when product_name ='C' then 1 else 0 end)=0
+#72 #2
+select distinct c.[customer_id]
+      ,[customer_name]
+from [72_orders]o
+left join [72_customers]c
+on o.[customer_id]=c.[customer_id]
+where c.[customer_id] in(select [customer_id] from [72_orders] where [product_name]='A')
+and  c.[customer_id] in(select [customer_id] from [72_orders] where [product_name]='B')
+and  c.[customer_id] not in(select [customer_id] from [72_orders] where [product_name]='C')
+
+#72 #3
+with t1 as
+(
+select customer_id
+from orders
+where product_name = 'B' and
+customer_id in (select customer_id
+from orders
+where product_name = 'A'))
+
+Select t1.customer_id, c.customer_name
+from t1 join customers c
+on t1.customer_id = c.customer_id
+where t1.customer_id != all(select customer_id
+from orders
+where product_name = 'C')
+
+#93 Customers who bought all products
+SELECT  [customer_id]
+  FROM [master].[dbo].[93_customer]
+  where [product_key] in (SELECT [product_key] FROM [93_product])
+  group by [customer_id]
+  having count(distinct [product_key])=(select count([product_key])FROM [93_product])
+
+
+#57 Department Highest Salary
+select Department,
+		Employee,
+		salary
+from(
+SELECT  d.[name]Department 
+		,e.[name]Employee 
+      ,[salary]
+	  ,rank()over(partition by [departmentid] order by [salary] desc)r
+  FROM [master].[dbo].[57_employee]e
+  join [57_department]d
+  on d.id=e.[departmentid]
+  )a
+  where r=1
+#78
+select 
+	t1.[left_operand],
+	t1.[operator],
+	t1.[right_operand],
+	case when t1.[operator]='<' and diff<0 then 'true'
+	when t1.[operator]='=' and diff=0 then 'true'
+	when t1.[operator]='>' and diff>0 then 'true'
+	else 'false' end as 'value' 
+from(
+SELECT 
+	e.[left_operand],
+	e.[right_operand],
+	(select v.value from [78_variables] v where  v.name =e.[left_operand]) -(select v.value from [78_variables] v where  v.name =e.[right_operand]) as diff,
+    e.[operator]
+FROM [master].[dbo].[78_expressions] e
+)t1
+
+#56
+#my
+SELECT [id]
+      , isnull(case when id%2=0 then lag([student])over(order by id)
+			 else lead([student])over(order by id) end,[student]) as student 
+  FROM [master].[dbo].[56_seats]
+#other
+  select row_number() over (order by (case when id%2=1 then id+1 else id-1 end )) as id, student
+from [56_seats]
+
+#80
+select 
+	min(t1.[log_id])  as start_id,
+	max(t1.[log_id])  as end_id       
+from(
+SELECT  [log_id],
+		[log_id]-ROW_NUMBER() over (order by [log_id]) as diff
+  FROM [master].[dbo].[80_logs]
+  )t1
+group by t1.diff
+
+#60
+select  top(1)t1.id,
+		count(t1.d)as num  
+from(
+	  SELECT [requester_id] as id
+		  ,[accept_date] as d
+	  FROM [master].[dbo].[60_request_accepted]
+	  union all
+	  SELECT[accepter_id]
+		  ,[accept_date]
+	  FROM [master].[dbo].[60_request_accepted]
+	  ) t1
+group by t1.id
+order by num desc
+
+#62
+SELECT [player_id]
+      ,[event_date]
+      ,sum([games_played])over(partition by [player_id] order by [event_date] asc) games_played_so_far 
+  FROM [master].[dbo].[62_activity]
+#91
+select 
+round(cast(cast(sum(case when t1.diff=1 then 1 else 0 end)as decimal(9,2)) /count(distinct t1.player_id ) as decimal(9,2)),2)
+from(
+	SELECT player_id,
+	DATEdiff(day,[event_date],lead([event_date])over(partition by [player_id]order by [event_date]asc)) as diff
+	FROM [master].[dbo].[91_activity]
+	)t1
+#86
+with a as(SELECT 
+      [question_id]
+      ,case when sum(case when action='show' then 1 else 0 end )=0 then 0
+	  else cast(sum(case when [answer_id] is not null then 1 else 0 end )as decimal(9,2))/sum(case when action='show' then 1 else 0 end ) end  as answer_rate
+  FROM [master].[dbo].[86_survey_log]
+  where [question_id] in (select [question_id] from [86_survey_log] where action='show')
+  group by [question_id]
+  )
+select [question_id]
+from a 
+where answer_rate in (select max(answer_rate) from a)
+#109
+#using 'case when' in where clause
+select 
+		[username] 
+      ,[activity]
+      ,[startDate]
+      ,[endDate]
+from (
+SELECT  [username]
+      ,[activity]
+      ,[startDate]
+      ,[endDate]
+	  ,rank() over (partition by [username] order by [startDate]) as r
+	  ,count([activity]) over (partition by [username]) as c
+  FROM [master].[dbo].[109_UserActivity]
+  )u
+  where u.r=(case when u.c>1 then 2 else 1 end)
+#63
+SELECT [student_id]
+      ,[course_id]
+      ,[grade]
+from(
+	SELECT [student_id]
+		  ,[course_id]
+		  ,[grade]
+		  ,rank()over(partition by [student_id] order by [grade]desc,[course_id]asc ) as r
+	  FROM [master].[dbo].[63_enrollments]
+	  )t1
+where t1.r=1
+#82
+#other
+select 
+round(avg(case when order_date = customer_pref_delivery_date then 1 else 0 end)*100,2) as
+immediate_percentage
+from 
+(select *,
+ rank() over(partition by customer_id order by order_date) as rk
+from delivery) a
+where a.rk=1
+#my
+select 	  cast(round(cast(sum( t1.diff) as decimal(9,2))/count(distinct t1.[customer_id]),2) as decimal(9,2))
+from(
+SELECT [delivery_id]
+      ,[customer_id]
+      ,[order_date]
+      ,[customer_pref_delivery_date]
+	  ,case when datediff( day,min([order_date])over(partition by [customer_id]),[customer_pref_delivery_date])=0 then 1 else 0 end as diff
+  FROM [master].[dbo].[82_delivery]
+  )t1
+#96
+SELECT sum(t1.[TIV_2016])TIV_2016 
+from(
+	SELECT  [PID]
+		  ,[TIV_2015]
+		  ,[TIV_2016]
+		  ,[LAT]
+		  ,[LON]
+		  ,count([PID])over(partition by [LAT],[LON]) as s1
+		  ,count([PID])over(partition by [TIV_2015])as s2
+	FROM [master].[dbo].[96_insurance]
+	)t1
+where t1.s1=1 and t1.s2>1
+
+#68
+with t1 as(
+SELECT [person_id]
+      ,[person_name]
+      ,[weight]
+      ,[turn]
+	  ,sum([weight])over(order by [turn]asc) as sum_weight
+  FROM [master].[dbo].[68_queue])
+
+SELECT [person_name]
+from t1
+where t1.[turn] =(select max([turn]) from t1 where t1.sum_weight<=1000 )
+#75
+SELECT 
+      e.[Name]
+  FROM [master].[dbo].[75_employee]e
+  left join (
+  select [ManagerId],
+		  count(*)  as n
+  FROM [master].[dbo].[75_employee]
+  group by [ManagerId]) m
+  on e.id=m.[ManagerId]
+  where m.n>4
+#69 Market Analysis 1
+SELECT 
+      u.[user_id]  
+	  ,u.[join_date]
+	  ,sum(case when Year(o.[order_date]) ='2019' then 1 else 0 end)orders_in_2019
+  FROM [master].[dbo].[69_users]u
+  left join [master].[dbo].[69_orders] o
+  on o.[buyer_id]=u.[user_id]
+  group by u.[user_id],u.[join_date]
+#95 Monthly Transaction 2
+SELECT 
+	month
+	,[country]
+	,sum(case when [state]='approved' then 1 else 0 end)approved_count
+	,sum(case when [state]='approved' then [amount] else 0 end)approved_amount
+	,sum(case when [state]='chargeback' then 1 else 0 end)chargeback_count
+	,sum(case when [state]='chargeback' then [amount] else 0 end)chargeback_amount 
+from(
+	SELECT 
+		[country]
+		,FORMAT([trans_date], 'yyyy-MM')month    
+		,[state]
+		,[amount]
+	FROM [master].[dbo].[95_transactions]
+	union all
+	SELECT [country]
+		  , FORMAT([charge_date], 'yyyy-MM')month
+		  ,'chargeback' as  [state]
+		  ,[amount]
+	FROM [master].[dbo].[95_transactions]t
+	inner join
+	[master].[dbo].[95_chargebacks]c
+	on t.id=c.[trans_id]
+	)t1
+group by
+	t1.[country]
+	,t1.month
+#59 Movie Rating
+#my 1
+with a as(
+	select  t1.name
+			,t1.title
+			,dense_rank()over(order by t1.cn desc,t1.name desc) as rn
+			,dense_rank() over(order by t1.r desc,t1.title desc) as rr
+	from(
+		  SELECT u.name
+				,m.title
+			  ,count(r.[movie_id]) over (partition by r.[user_id]) as cn
+			  ,avg(cast(r.[rating]as decimal(9,2)))over(partition by r.[movie_id]) as r
+		  FROM [master].[dbo].[59_movie_rating] r
+		  left join [59_movies] m
+		  on r.[movie_id]=m.[movie_id]
+		  left join [59_users] u
+		  on r.[user_id]=u.[user_id]
+		  where year(r.created_at )='2020'
+	  )t1
+	  )
+select distinct name as results      
+from a 
+where rn=1
+union
+select distinct title
+from a 
+where rr=1
+
+#my2
+
+select u1.name results      
+from(
+	SELECT 
+		  u.name,
+		  rank() over(order by count(movie_id) desc,u.name asc) as rk
+	  FROM [master].[dbo].[59_movie_rating] r
+	  left join [59_users] u
+	  on r.user_id=u.user_id
+	  group by r.user_id,u.name
+  ) u1
+where u1.rk=1;
+select m1.title results      
+from(
+	  SELECT 
+		  m.title,
+		  rank() over(order by avg( cast((r.rating)as decimal(9,2))) desc,m.title asc) as rk
+	  FROM [master].[dbo].[59_movie_rating] r
+	  left join [59_movies] m
+	  on r.movie_id=m.movie_id
+	  group by r.movie_id,m.title
+	  )m1
+where m1.rk=1;
+#54 NPV Queries
+SELECT q.[id]
+      ,q.[year]
+	  ,isnull(n.npv,0) as npv
+  FROM [master].[dbo].[54_queries] q
+  left join [54_npv] n
+  on q.id=n.id and q.year=n.year
+# 92 New users daily count
+select 
+	a.login_date login_date ,
+	count(distinct [user_id] )user_count  
+from(
+SELECT [user_id] 
+      ,min([activity_date])login_date
+FROM [master].[dbo].[92_traffic]
+where [activity]='login' 
+group by [user_id]
+) a
+where a.[login_date] between dateadd(day,-90,'2019-06-30') and '2019-06-30'
+group by a.[login_date]
+
+#50 Nth Highest salary
+IF OBJECT_ID (N'getNthHighestSalary', N'IF') IS NOT NULL  
+    DROP FUNCTION getNthHighestSalary;  
+GO  
+CREATE FUNCTION getNthHighestSalary(@N INT) RETURNS INT
+BEGIN
+  RETURN (
+      select distinct isnull( a.salary,0)as salary
+      from
+      (select salary, 
+      dense_rank() over(order by salary desc) as rk
+      from [50_employee]) a
+      where a.rk = @N
+  );
+END
+select dbo.getNthHighestSalary(2)
+--Invalid Object Name Error in Function in SQL
+--https://stackoverflow.com/questions/17967778/invalid-object-name-error-in-function-in-sql
+
+#84
+with f as (
+SELECT [user1_id]
+      ,[user2_id]
+FROM [master].[dbo].[84_friendship] 
+  union 
+select [user2_id]
+      ,[user1_id]
+from [master].[dbo].[84_friendship])
+
+SELECT distinct t. recommended_page
+from(
+SELECT [user1_id]
+      ,[user2_id]
+	  ,l1.page_id
+	  ,l2.page_id recommended_page 
+  FROM  f
+  left join [84_likes] l1
+  on f.user1_id=l1.user_id
+  left join [84_likes] l2
+  on f.user2_id=l2.user_id
+  ) t
+  where [user1_id]=1 and t.page_id!=t.recommended_page 
+#other 
+select distinct page_id as recommended_page
+from [84_likes]
+where user_id 
+in (select user2_id as id
+from [84_friendship]
+where user1_id = 1 --or user2_id = 1 and user2_id !=1
+union all
+select user1_id
+from [84_friendship]
+where user2_id = 1) 
+and page_id not in (select page_id from [84_likes] where user_id = 1)
+
+#67 Product Price at a given date
+SELECT [product_id]
+      ,case when [change_date]<='2019-08-16' then [new_price] else 10 end as price 
+from(
+SELECT [product_id]
+      ,[new_price]
+      ,[change_date]
+	  ,rank()over(partition by [product_id] order by [change_date] desc) as r
+  FROM [master].[dbo].[67_products]
+  )a
+  where a.r=1
+
+#90 Product Sales Analysis 3
+SELECT [product_id]
+      ,[year] as first_year 
+      ,[quantity]
+      ,[price]
+from(
+SELECT [product_id]
+      ,[year]
+      ,[quantity]
+      ,[price]
+	  ,rank()over(partition by [product_id] order by [year]asc) r
+  FROM [master].[dbo].[90_sales]
+  )a
+  where a.r=1
+
+#85 Project Employees 3
+SELECT a.[project_id]
+      ,a.[employee_id]
+from(
+SELECT p.[project_id]
+      ,e.[employee_id]
+	  ,e.experience_years 
+	  ,rank()over(partition by p.[project_id] order by e.experience_years desc)r
+  FROM [master].[dbo].[85_project]p
+  left join [85_employee]e
+  on p.[employee_id]=e.[employee_id]
+  )a
+  where a.r=1
+
+#79 Rectangles Area
+SELECT o1.[id] as p1
+	  ,o2.[id] as p2
+      ,abs(o1.x_value-o2.x_value)*abs(o1.y_value-o2.y_value) as area
+  FROM [master].[dbo].[79_points] o1
+  cross join [79_points] o2
+  where o1.id!=o2.id 
+  and o1.id<o2.id 
+  and o1.x_value-o2.x_value!=0
+  and o1.y_value-o2.y_value!=0
+  order by p1 asc, p2 asc
+#73 Reported Posts 2
+select  cast(round(avg(p) ,2)as decimal(9,2))average_daily_percent 
+from(
+SELECT [action_date]
+	  ,case when sum(case when r.[post_id] is null then 0 else 1 end)=0 then 0 else cast(sum(case when r.[post_id] is null then 0 else 1 end) as decimal(9,2))/count(*) end as p
+  FROM [master].[dbo].[73_actions] a
+  left join [73_removals] r
+  on a.[post_id]=r.[post_id] and a.[action_date]<=r.[remove_date]
+  where a.action='report' and a.extra='spam'
+  group by [action_date]
+  )t1
+
+#71 Restaurant growth
+#my
+SELECT
+	[visited_on]
+	, [average_amount]
+	, cast(round([amount],2) as decimal(9,2)) as [amount]
+	
+from(
+	SELECT 
+			max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING) as [visited_on]
+		  ,case when max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)!=max([visited_on])over() then
+		  avg(cast([amount] as decimal(9,2))) over(ORDER BY [visited_on]
+							ROWS BETWEEN current row AND 6 FOLLOWING)
+		  else sum(cast([amount] as decimal(9,2))) over(ORDER BY [visited_on]
+							ROWS BETWEEN current row AND UNBOUNDED FOLLOWING)/7
+		  end as amount       
+		  ,case when max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)!=max([visited_on])over() then
+		  sum([amount] ) over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)
+		  else sum([amount]) over(ORDER BY [visited_on]ROWS BETWEEN current row AND UNBOUNDED FOLLOWING)
+		  end as average_amount 
+		  ,datediff(day,[visited_on],max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)) as diff
+	  
+	  FROM [master].[dbo].[71_customer]
+	  ) a
+where diff=6
+order by [visited_on]
+
+#other
+select visited_on, sum(amount) over(order by visited_on rows 6 preceding),
+round(avg(amount) over(order by visited_on rows 6 preceding),2)
+from 
+(
+	select visited_on, sum(amount) as amount
+	FROM [master].[dbo].[71_customer]
+	group by visited_on
+) a
+order by visited_on offset 6 rowsselect visited_on, sum(amount) over(order by visited_on rows 6 preceding),
+round(avg(amount) over(order by visited_on rows 6 preceding),2)
+from 
+(
+	select visited_on, sum(amount) as amount
+	FROM [master].[dbo].[71_customer]
+	group by visited_on
+) a
+order by visited_on offset 6 rows
+
+#76 Running total for different genders
+SELECT [gender]
+      ,[day]
+	  ,sum([score_points])over(partition by [gender] order by [day] asc) total 
+  FROM [master].[dbo].[76_scores]
+  order by [gender]
+      ,[day]
+
+#70 Second degree follower
+SELECT [followee]as follower
+		,count(distinct [follower]) num        
+  FROM [master].[dbo].[70_follow]
+  where [followee] in (select [follower] from [70_follow])
+  group by [followee]
+  order by [followee]
+
+#89 Shortest distance in a plane
+
+SELECT min(SQRT(abs(p1.[x]-p2.[x])*abs(p1.[x]-p2.[x])+ abs(p1.[y]-p2.[y])*abs(p1.[y]-p2.[y]))) as shortest 
+  FROM [master].[dbo].[89_point_2d] p1
+  cross join [89_point_2d] p2
+  where  p1.x!=p2.x or p1.y!=p2.y
+
+#53 Team scores in football match
+with a as 
+(SELECT [host_team],
+		case when [host_goals]>[guest_goals] then 3 
+			 when [host_goals]=[guest_goals] then 1 
+		else 0 end as host_goals,     
+		[guest_team],
+		case when [host_goals]>[guest_goals] then 0 
+			 when [host_goals]=[guest_goals] then 1 
+		else 3 end as guest_goals
+FROM [master].[dbo].[53_matches]),
+b as 
+(SELECT  [host_team] as team_id  ,
+		 host_goals as num_points 
+ from a 
+ union all
+ SELECT [guest_team],
+		 guest_goals
+ from a),
+ c as 
+ (select team_id,
+		 sum(num_points) as num_points 
+  from b 
+  group by team_id)
+
+select t.team_id,
+	   t.team_name,
+	   isnull(c.num_points,0) as num_points
+from [53_teams] t
+left join c
+on t.team_id=c.team_id
+order by 
+	c.num_points desc, 
+	t.team_id asc
+
+#58 Tree Node
+SELECT [id]
+      ,case when [id] in (select id from [58_tree] where p_id is  null) then 'Root' 
+	  when [id] in (select [p_id] from [58_tree] where p_id is not null) then 'Inner'
+	  else 'Leaf' end as 'Type' 
+  FROM [master].[dbo].[58_tree] 
+
+#64 Unpopular Books
+SELECT b.[book_id]
+      ,b.[name]
+  FROM [master].[dbo].[64_books] b
+left join (SELECT [book_id]
+      ,sum([quantity])q
+  FROM [master].[dbo].[64_orders]
+  where datediff(year,[dispatch_date],'2019-06-23')<=1
+  group by [book_id])o
+  on b.book_id=o.book_id
+  where datediff(month,[available_from],'2019-06-23')>1  and isnull(o.q,0)<=10
+
+#88 Winning Candidate
+SELECT [Name]
+  FROM [master].[dbo].[88_candidate]c
+  inner join (
+SELECT top(1)[candidateId]
+	  ,count([candidateId]) as n
+  FROM [master].[dbo].[88_vote]
+  group by [candidateId])v
+  on c.id=v.[candidateId]
+#108 Average Salary
+select distinct month,
+	    [department_id],
+	   case when department>total then 'higher'
+	   when department=total then 'same'
+	   else 'lower' end comparison  
+from(
+SELECT FORMAT([pay_date], 'yyyy-MM')month
+	  ,[department_id]
+	  ,avg([amount])over(partition by FORMAT([pay_date], 'yyyy-MM')) as total
+		,avg([amount])over(partition by FORMAT([pay_date], 'yyyy-MM'),[department_id])as department
+FROM [master].[dbo].[108_salary] s
+  inner join [master].[dbo].[108_employee] e
+  on s.[employee_id]=e.[employee_id]
+  ) t
+#102 Cumulative Salary
+select Id, 
+		Month,
+		Salary
+from(SELECT [Id]
+      ,[Month]
+      ,[Salary] as s
+	  ,sum([Salary])over(partition by [Id]order by[Month] asc)[Salary]
+	  ,max([Month])over(partition by [Id])m
+  FROM [master].[dbo].[102_employee]
+) t
+where m!=[Month]
+order by  Id asc, Month  desc
+
+#14 Department top three salaries
+select 
+	Employee
+	,Department
+	,[Salary]
+from(
+SELECT e.[Name] Employee
+	  ,d.[Name]Department
+      ,[Salary]
+      ,DENSE_RANK()over(partition by [DepartmentId] order by [Salary] desc) r
+  FROM [master].[dbo].[14_employee] e
+  left join [14_department] d
+  on e.[DepartmentId]=d.[Id]
+  )a
+  where a.r<=3
+
+#107 Find median given frequency of numbers
+with t1 as(
+select *,
+sum(frequency) over(order by number) as cum_sum, 
+cast(round(cast(sum([frequency])over() as decimal(9,2))/2,0) as decimal(9,0))as middle,
+cast(sum([frequency])over() as decimal(9,2))%2  as av
+from [107_numbers])
+
+select avg(number) as median
+from t1
+where middle between (cum_sum - frequency) and cum_sum or 
+(case when av=0.00 then middle+1 else middle end) between (cum_sum - frequency) and cum_sum
+
+
+#106 Find the quiet students in the exam
+with a as(
+SELECT [exam_id]
+      ,[student_id]
+      ,[score]
+	  ,DENSE_RANK()over(partition by [exam_id]order by [score] desc) descr
+	  ,DENSE_RANK()over(partition by [exam_id]order by [score] asc) ascr
+  FROM [master].[dbo].[106_exam]
+  )
+
+select 
+	distinct a.[student_id],
+	s.[student_name ]
+from a
+inner join [106_student] s
+on a.[student_id]=s.[student_id]
+where a.[student_id] not in (select [student_id] from a where descr=1 or ascr=1)
+
+#106 Find the quiet students in the exam
+select [event_date]install_dt 
+,count([event_date]) installs  
+,case when sum(case when datediff(day,[event_date],wr)=1 then 1 else 0 end)=0 then 0 
+ else cast(round(cast(sum(case when datediff(day,[event_date],wr)=1 then 1 else 0 end) as numeric(36,2))/count([event_date]),2)as numeric(36,2)) end  Day1_retention 
+
+from(
+
+SELECT [event_date]
+	  ,rank()over( partition by [player_id]order by [event_date] asc) r
+	  ,lead([event_date])over( partition by [player_id]order by [event_date] ) wr
+  FROM [master].[dbo].[111_activity]
+  )a
+  where a.r=1 
+  group by [event_date]
+ 
+#99 Human traffic of stadium
+with t1 as(
+SELECT [id]
+      ,[visit_date]
+      ,[people]
+	  ,id-sum(case when people >=100 then 1 else 0 end)over(order by id asc) as r
+  FROM [master].[dbo].[99_stadium]
+  where people>=100
+ ),
+ t as
+(select r as r
+,count(r) as rr
+from t1
+ group by r
+)
+  select * from t1 
+  where r in (select r from t where rr>=3)
+
+#103 Market Analysis 2
+select  user_id seller_id,
+		case when i.item_id=o.[item_id] then 'yes' else 'no'end as '2nd_item_fav_brand' 
+from [103_users]	u
+left join(
+select [item_id]
+      ,[seller_id]
+from(
+	SELECT [item_id]
+		  ,[seller_id]
+		  ,rank()over(partition by seller_id order by order_date asc) r
+	 FROM [master].[dbo].[103_orders]
+	 )a
+	 where a.r=2
+  )o
+on u.user_id=o.seller_id
+left join [103_items]i
+on i.item_brand =u.favorite_brand
+
+#105 Median Employee Salary
+select id,company,salary
+from
+(select *, 
+row_number() over(partition by company order by salary) as rn,
+count(*) over(partition by company) as cnt,
+count(*) over(partition by company)%2 as cm
+from [105_employee]) a
+where rn =cnt/2 or rn=case when cm=0 then (cnt/2)+1 else cnt/2 end
+
+#105 Median Employee Salary
+with a as(select e1.id, e1.company, e1.salary
+    from [105_employee] e1
+	inner join [105_employee] e2
+    on e1.company = e2.company
+    group by e1.id, e1.company, e1.salary
+	having sum(
+        case when e1.salary = e2.salary then 1 else 0 end
+    ) >=abs(sum(sign(e1.salary - e2.salary)))
+  ),
+b as (select a.*,e.c from a
+	join 
+	(select company,count(*)%2 c
+	from [105_employee]
+	group by company) e
+	on e.company=a.company)
+
+	select id,company,salary from b
+	where c=1 and (id)in(select min(id) from a group by company) or c=0 
+	order by company,salary

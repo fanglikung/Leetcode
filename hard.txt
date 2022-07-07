@@ -1,0 +1,417 @@
+#104
+select period_state,
+		min(d)  as start_date,
+		max(d)  as end_date
+from(
+	select *,
+			sum(diff)over(order by d) su
+	from(select *,
+	lag(period_state)over(order by d) last_date,
+	case when lag(period_state)over(order by d)=period_state then 0 else 1 end as diff
+	from(SELECT
+			'secceeded' as period_state ,
+			[success_date] as d
+		FROM [master].[dbo].[104_succeeded]
+		where [success_date] between '2019-01-01' and '2019-12-31'
+	union
+		SELECT
+		'failed' as period_state ,
+		[fail_date] as d
+		FROM [master].[dbo].[104_failed]
+		where [fail_date] between '2019-01-01' and '2019-12-31'
+		)a
+	)b
+)c
+group by 
+	period_state,
+	su
+
+#104
+select
+		period_state,
+		 start_date,
+		end_date
+from(select period_state,
+		diff,
+		min(d) as start_date,
+		max(d) as end_date
+from(select *
+	from(SELECT
+			'secceeded' as period_state ,
+			[success_date] as d,
+			dateadd(day,-(row_number()over( order by [success_date])),[success_date]) as diff
+		FROM [master].[dbo].[104_succeeded]
+		where [success_date] between '2019-01-01' and '2019-12-31'
+	union
+		SELECT
+		'failed' as period_state ,
+		[fail_date] as d,
+		dateadd(day,-(row_number()over(order by [fail_date])),[fail_date]) as diff
+		FROM [master].[dbo].[104_failed]
+		where [fail_date] between '2019-01-01' and '2019-12-31'
+		)a
+	)b
+group by period_state,
+		diff
+	)c
+
+#112 
+select 
+	category,
+	isnull(Monday,0)Monday , 
+	isnull(Tuesday,0)Tuesday , 
+	isnull(Wednesday,0)Wednesday , 
+	isnull(Thursday,0)Thursday  , 
+	isnull(Friday,0)Friday   , 
+	isnull(Saturday,0)Saturday  , 
+	isnull(Sunday,0)Sunday
+from(
+SELECT 
+		[item_category] as category,
+		DATENAME(Weekday, [order_date]) as w,
+        [quantity]
+  FROM [master].[dbo].[112_orders]o
+  left join [112_items]i
+  on o.[item_id]=i.[item_id]
+  )a
+  PIVOT (
+	sum([quantity]) 
+	FOR w IN (Monday , Tuesday , Wednesday , Thursday  , Friday   , Saturday  , Sunday )
+) p
+order by category
+
+#112 user case when and group by rather than pivot
+ with a as (
+  SELECT 
+		[item_category] as category,
+		DATENAME(Weekday, [order_date]) as w,
+        sum([quantity]) q
+  FROM [master].[dbo].[112_orders]o
+  left join [112_items]i
+  on o.[item_id]=i.[item_id]
+  group by [item_category],DATENAME(Weekday, [order_date])
+ )
+ select category,
+		sum(case when w='Monday'  then q else 0 end)  Monday,
+		sum(case when w='Tuesday'  then q else 0 end ) Tuesday,
+		sum(case when w='Wednesday'  then q else 0 end)  Wednesday,
+		sum(case when w='Thursday'  then q else 0 end)  Thursday,
+		sum(case when w='Friday'  then q else 0 end)  Friday,
+		sum(case when w='Saturday'  then q else 0 end)  Saturday,
+		sum(case when w='Sunday'  then q else 0 end)  Sunday
+from a
+group by category
+
+#112 use dynamic sql
+DECLARE @colnameList varchar(200)
+SET @colnameList = null
+SELECT @colnameList= ISNULL(@colnameList + ',','')
++ QUOTENAME(w)
+FROM (SELECT DISTINCT w FROM [112_ItemsOrders]) a;
+
+DECLARE @colnameListvalue NVARCHAR(MAX)
+SELECT @colnameListvalue 
+    =  ISNULL(@colnameListvalue + ',','')
+    +'ISNULL(' + QUOTENAME(w) + ', 0) AS '
+    + QUOTENAME(w)
+FROM (SELECT DISTINCT w FROM [112_ItemsOrders]) b;
+
+
+DECLARE @SQLQuery NVARCHAR(MAX)
+SET @SQLQuery =
+'SELECT category ,'+ @colnameListvalue + '
+FROM [112_ItemsOrders] c
+PIVOT 
+( Sum(q)
+FOR w IN ('+@colnameList+') ) as pvt'
+
+EXEC(@SQLQuery)
+
+#refernce to 
+https://sqlhints.com/2015/05/30/how-to-replace-null-value-by-0-in-the-dynamic-pivot-result-sql-server/?subscribe=success#subscribe-blog-blog_subscription-3
+
+
+#105
+select America,Asia,Europe
+from(
+SELECT  [name]
+      ,[continent]
+	  ,ROW_NUMBER()over(partition by continent order by name) as r
+  FROM [master].[dbo].[105_student])s
+  pivot( max(name)for continent in (America,Asia,Europe))pv;
+#114 Total sales amount by year
+#1
+with cte as (
+select 
+	product_id,
+	DATEPART(year, period_start) as ys,
+	DATEPART(year, period_start) as ysadd,
+	DATEPART(year, period_end) as ye,
+	period_start,
+	period_end,
+	average_daily_sales
+from [114_sales]
+union  all
+select 
+	product_id,
+	ys,
+	ysadd+1 ,
+	ye,
+	period_start,
+	period_end,
+	average_daily_sales
+from cte
+where ysadd<ye)
+SELECT 
+	c.product_id,
+	p.product_name,
+	ysadd as report_year,
+	case when ysadd=ys and ysadd=ye then (DATEDIFF(day,period_start,period_end)+1)*average_daily_sales
+    when  ys<ysadd and ysadd=ye then DATEDIFF(day,datefromparts(ysadd-1, 12, 31),period_end)*average_daily_sales
+	when  ys=ysadd and ysadd<ye then DATEDIFF(day,period_start,datefromparts(ysadd+1, 1, 1))*average_daily_sales
+	else DATEDIFF(day,datefromparts(ysadd-1, 12, 31),datefromparts(ysadd, 12, 31))*average_daily_sales end as total_amount
+from cte c
+join [114_product] p
+on c.product_id=p.product_id
+where ys>=2018 and ye<=2020
+order by c.product_id,ysadd;
+select * from [114_sales];
+
+#114 Total sales amount by year
+#2
+with a as (SELECT  [product_id]
+      ,[period_start]
+      ,[period_end]
+      ,[average_daily_sales]
+	  ,year([period_start])s
+	  ,year([period_start])m
+	  ,year([period_end])e
+  FROM [master].[dbo].[114_sales]),
+  b as (
+  select [product_id],[period_start],[period_end],[average_daily_sales],s ,m,e
+  from a
+  union all
+  select [product_id],[period_start],[period_end],[average_daily_sales],s,m+1,e
+  from b 
+  where m<e)
+
+  select b.[product_id],
+		[product_name],
+		m report_year ,
+ case when s<m and m<e then [average_daily_sales]*DATEPART(dy,DATEFROMPARTS(m,12,31))
+  when m=s and m<e then　[average_daily_sales]*(1+datediff(day,[period_start],DATEFROMPARTS(m,12,31)))--(datediff(day,[period_start],DATEADD(yy, DATEDIFF(yy, 0,[period_start]) + 1, -1))+1)
+  when s<m and m=e then  [average_daily_sales]*DATEPART(dayofyear,[period_end])--(datediff(day,DATEADD(yy, DATEDIFF(yy, 0, [period_end]), 0),[period_end] ) +1)
+  else [average_daily_sales]*(datediff(day,[period_start],[period_end] ) +1)
+  end  total_amount
+  from b
+  left join [master].[dbo].[114_product]p
+  on b.[product_id]=p.[product_id]
+  where m between s and e
+  order by  b.[product_id],
+		    m
+#109
+#1
+select 
+	ss.group_id,
+	ss.player_id
+from(
+	select s.player_id,
+		   p.group_id
+--		   ,sum(s.score) as total
+		   ,rank() over (partition by p.group_id order by sum(s.score) desc,s.player_id asc ) as r
+	from(
+		SELECT [first_player] as player_id
+			  ,[first_score] as score
+		  FROM [master].[dbo].[109_matches]
+		union all
+		SELECT [second_player]
+			  ,[second_score]
+		  FROM [master].[dbo].[109_matches]
+	) s
+	join [109_players] p
+	on s.player_id=p.player_id
+	group by s.player_id,p.group_id
+)ss
+where ss.r=1
+#114
+#2
+with a as (  
+  SELECT [first_player] player_id  
+      ,[first_score] score
+  FROM [master].[dbo].[109_matches]
+  union
+  SELECT [second_player]
+      ,[second_score]
+  FROM [master].[dbo].[109_matches]
+  ),
+  b as (
+  select player_id,sum(score)score
+  from a
+  group by player_id)
+
+  select [group_id],
+		player_id  
+from(
+  select b.player_id,
+		[group_id],
+		score,
+		rank()over (partition by [group_id] order by b.player_id asc,score desc)r
+  from b
+  left join [109_players] p
+  on b.player_id=p.player_id
+  )c
+  where r=1
+
+
+#113
+#other
+select  
+	a.spend_date, 
+	a.platform,
+	isnull(SUM(b.amount),0) total_amount,
+	isnull(count(user_id),0) as total_users 
+from(
+select distinct spend_date, 'mobile' as platform  FROM [113_spending]
+union 
+select distinct spend_date, 'desktop' as platform FROM [113_spending]
+union
+select distinct spend_date, 'both' as platform  FROM [113_spending]
+)a
+left join
+(SELECT 
+	user_id,
+	spend_date, 
+	SUM(amount) amount,
+	(CASE WHEN COUNT(DISTINCT platform)>1 THEN 'both' ELSE min(platform) END)as platform
+FROM [113_spending]
+GROUP BY 
+	spend_date, 
+	user_id)b
+on a.spend_date=b.spend_date
+and a.platform=b.platform
+GROUP BY 
+	a.spend_date,
+	a.platform
+order by 
+	a.spend_date,
+	a.platform
+
+#113 my1
+with a 	as (select *,
+					count(platform) over (partition by spend_date,user_id) as nu
+			from [113_spending]),
+s as (
+		select 
+			distinct aa.spend_date,
+				ss.platform
+		from  [113_spending] aa
+		cross join (
+					select 
+						distinct platform 
+					from [113_spending]
+					union 
+					select 'both'
+					)ss
+	)
+
+select 
+	s.spend_date,
+	s.platform,
+	isnull(b.total_amount,0) as total_amount,
+	isnull(b.total_users,0) as total_users
+from s
+left join(
+select 
+	a.spend_date,
+	'both' as platform ,
+	sum(a.amount) as total_amount,
+	count(distinct a.user_id) as total_users
+from a 
+where a.nu=2 
+group by a.spend_date
+union 
+select 
+	a.spend_date,
+	a.platform ,
+	sum(a.amount) as total_amount,
+	count(a.user_id) as total_users
+from a 
+where a.nu=1 
+group by a.spend_date,
+		 a.platform
+		)b
+on s.spend_date=b.spend_date 
+and s.platform=b.platform
+#113 my2
+select  s.[spend_date],
+		isnull(b.[platform],'both')[platform],
+		isnull( b.total_amount,0)total_amount ,
+		isnull(b.total_users ,0)total_users
+from 
+	(SELECT DISTINCT(spend_date), 'desktop' platform FROM [113_spending]
+	UNION
+	SELECT DISTINCT(spend_date), 'mobile' platform FROM [113_spending]
+	UNION
+	SELECT DISTINCT(spend_date), 'both' platform FROM [113_spending]
+	)s
+left join 
+	(select [spend_date],
+			p [platform],
+			case when p='both' then count(distinct user_id) else count( user_id)end total_users ,
+			sum([amount])total_amount 
+	from(
+		SELECT [user_id]
+			  ,[spend_date]
+			  ,[platform]
+			  ,[amount]
+			  ,case when count([platform])over(partition by [user_id],[spend_date])>1 then 'both' else [platform] end p
+		  FROM [master].[dbo].[113_spending]
+		  )a
+		  group by [spend_date],
+				p
+	)b
+on s.spend_date=b.spend_date and s.[platform]=b.[platform]
+
+#101 Number of transactions per visit
+  with t1 as (
+  select c,count(c)visits_count 
+  from(
+  SELECT e.user_id,visit_date ,sum(case when t.user_id is null then 0 else 1 end) c
+  FROM [master].[dbo].[101_visits]e
+  left join [master].[dbo].[101_transactions]t
+  on e.[user_id]=t.[user_id] and e.[visit_date]=t.[transaction_date]
+  group by e.user_id,visit_date
+  )a
+  group by c
+  ),
+  t as(
+ select max(c) as transactions_count
+ from t1
+ union all
+ select transactions_count -1
+ from t
+ where transactions_count >0
+ )
+
+  select transactions_count ,isnull(visits_count,0)visits_count
+  from t
+  left join t1
+  on t.transactions_count =t1.c
+  order by transactions_count 
+
+#98 Trips and Users
+select  [request_at]  Day ,
+		cast(round(cast(sum(case when [status]!='completed' then 1 else 0 end) as decimal(9,2))/count(*),2)as decimal(9,2))'Cancellation Rate'
+from(
+ SELECT [client_id]
+      ,[driver_id]
+      ,[status]
+      ,[request_at]
+  FROM [master].[dbo].[98_trips] t
+  join[98_users]p
+  on t.[client_id]=p.users_id
+  join[98_users]p1
+  on t.[driver_id]=p1.users_id
+  where p.banned !='Yes' and p1.banned !='Yes' and[request_at] between '2013-10-01' and '2013-10-03'
+)a
+group by [request_at]
