@@ -344,15 +344,6 @@ SELECT
 FROM [master].[dbo].[78_expressions] e
 )t1
 
-#56
-#my
-SELECT [id]
-      , isnull(case when id%2=0 then lag([student])over(order by id)
-			 else lead([student])over(order by id) end,[student]) as student 
-  FROM [master].[dbo].[56_seats]
-#other
-  select row_number() over (order by (case when id%2=1 then id+1 else id-1 end )) as id, student
-from [56_seats]
 
 
 #60
