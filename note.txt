@@ -1,9 +1,0 @@
-#113
-how to create table with column platform ENUM data type
-
-create table [113_spending](
-  user_id      int     
-, [spend_date]   date    
-, platform     varchar(10) NOT NULL CHECK (platform IN('desktop', 'mobile'))
-, amount       int    
-,primary key(user_id,spend_date,platform))
