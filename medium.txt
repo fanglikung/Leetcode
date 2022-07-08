@@ -354,16 +354,6 @@ SELECT [id]
   select row_number() over (order by (case when id%2=1 then id+1 else id-1 end )) as id, student
 from [56_seats]
 
-#80
-select 
-	min(t1.[log_id])  as start_id,
-	max(t1.[log_id])  as end_id       
-from(
-SELECT  [log_id],
-		[log_id]-ROW_NUMBER() over (order by [log_id]) as diff
-  FROM [master].[dbo].[80_logs]
-  )t1
-group by t1.diff
 
 #60
 select  top(1)t1.id,
