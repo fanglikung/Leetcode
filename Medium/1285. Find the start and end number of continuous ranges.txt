@@ -41,6 +41,7 @@
 -- Number 9 is missing in the table.
 
 -- #1 solution
+--#sql server
 select 
 	min([log_id])start_id   ,
 	max([log_id])end_id       

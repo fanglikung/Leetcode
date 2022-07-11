@@ -47,7 +47,8 @@
 --Explanation: 
 --Note that if the number of students is odd, there is no need to change the last one's seat.
 
---#1 solution
+--#1 solution 
+--#sql server
 SELECT s1.[id]
 	  ,case when s1.id%2=0 then s3.[student] 
 		else isnull(s2.[student],s1.[student])end student 
@@ -58,7 +59,8 @@ SELECT s1.[id]
   on s1.id=s3.id+1
 
 
---#2 solution
+--#2 solution 
+--#sql server
 --SELECT [id]
 --      , case when id%2=0 then lag([student])over(order by id)
 --		else isnull(lead([student])over(order by id) ,[student])end as student 
@@ -66,6 +68,7 @@ SELECT s1.[id]
 
 
 --#3  solution other
+--#sql server
 --select row_number() over (order by (case when id%2=1 then id+1 else id-1 end )) as id, 
 --student
 --from [626_seats]
