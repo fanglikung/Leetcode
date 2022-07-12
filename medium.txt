@@ -345,14 +345,6 @@ FROM [master].[dbo].[78_expressions] e
 )t1
 
 
-
-
-
-#62
-SELECT [player_id]
-      ,[event_date]
-      ,sum([games_played])over(partition by [player_id] order by [event_date] asc) games_played_so_far 
-  FROM [master].[dbo].[62_activity]
 #91
 select 
 round(cast(cast(sum(case when t1.diff=1 then 1 else 0 end)as decimal(9,2)) /count(distinct t1.player_id ) as decimal(9,2)),2)
