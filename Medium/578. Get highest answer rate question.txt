@@ -1,0 +1,68 @@
+-- Get the highest answer rate question from a table survey_log with these columns: id, action, question_id, answer_id, q_num, timestamp.
+
+-- id means user id; action has these kind of values: "show", "answer", "skip"; answer_id is not null when action column is "answer", 
+-- while is null for "show" and "skip"; q_num is the numeral order of the question in current session.
+
+-- Write a sql query to identify the question which has the highest answer rate.
+
+-- Example:
+
+-- Input:
+-- +------+-----------+--------------+------------+-----------+------------+
+-- | id   | action    | question_id  | answer_id  | q_num     | timestamp  |
+-- +------+-----------+--------------+------------+-----------+------------+
+-- | 5    | show      | 285          | null       | 1         | 123        |
+-- | 5    | answer    | 285          | 124124     | 1         | 124        |
+-- | 5    | show      | 369          | null       | 2         | 125        |
+-- | 5    | skip      | 369          | null       | 2         | 126        |
+-- +------+-----------+--------------+------------+-----------+------------+
+-- Output:
+-- +-------------+
+-- | survey_log  |
+-- +-------------+
+-- |    285      |
+-- +-------------+
+-- Explanation:
+-- question 285 has answer rate 1/1, while question 369 has 0/1 answer rate, so output 285.
+ 
+
+-- Note: The highest answer rate meaning is: answer number's ratio in show number in the same question.
+
+
+-- #sql server 
+-- #solution 1
+with a as(SELECT 
+      [question_id]
+      ,case when sum(case when action='show' then 1 else 0 end )=0 then 0
+	  else cast(sum(case when [answer_id] is not null then 1 else 0 end )as decimal(9,2))/sum(case when action='show' then 1 else 0 end ) end  as answer_rate
+  FROM [master].[dbo].[86_survey_log]
+  where [question_id] in (select [question_id] from [86_survey_log] where action='show')
+  group by [question_id]
+  )
+select [question_id]
+from a 
+where answer_rate in (select max(answer_rate) from a)
+
+-- #mysql
+-- #solution 1
+select question_id
+From 578_survey_log
+Group by question_id
+Order by sum(case when action='answer' then 1 else 0 end) / sum(case when action='show' then 1 else 0 end) desc
+Limit 1;
+
+
+-- Create table 578_survey_log(
+-- id int not null,
+-- action varchar(6) not null check (action in ('answer','show','skip')),
+-- question_id int not null,
+-- answer_id int,
+-- q_num int not null,
+-- timestamp  int not null,
+-- Check ((action='answer' and answer_id!=null) or ((action='skip' or action='show')  and answer_id=null))  );
+
+-- Insert into 578_survey_log values
+-- (5    , 'show'      , 285          , null       , 1         , 123        ),
+-- (5    , 'answer'    , 285          , 124124     , 1         , 124        ),
+-- (5    , 'show'      , 369          , null       , 2         , 125        ),
+-- (5    , 'skip'      , 369          , null       , 2         , 126        );
