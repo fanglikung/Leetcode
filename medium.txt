@@ -344,23 +344,7 @@ SELECT
 FROM [master].[dbo].[78_expressions] e
 )t1
 
-#109
-#using 'case when' in where clause
-select 
-		[username] 
-      ,[activity]
-      ,[startDate]
-      ,[endDate]
-from (
-SELECT  [username]
-      ,[activity]
-      ,[startDate]
-      ,[endDate]
-	  ,rank() over (partition by [username] order by [startDate]) as r
-	  ,count([activity]) over (partition by [username]) as c
-  FROM [master].[dbo].[109_UserActivity]
-  )u
-  where u.r=(case when u.c>1 then 2 else 1 end)
+
 #63
 SELECT [student_id]
       ,[course_id]
