@@ -1,0 +1,55 @@
+The Employee table holds all employees including their managers. Every employee has an Id, and there is also a column for the manager Id.
+
++------+----------+-----------+----------+
+|Id    |Name 	  |Department |ManagerId |
++------+----------+-----------+----------+
+|101   |John 	  |A 	      |null      |
+|102   |Dan 	  |A 	      |101       |
+|103   |James 	  |A 	      |101       |
+|104   |Amy 	  |A 	      |101       |
+|105   |Anne 	  |A 	      |101       |
+|106   |Ron 	  |B 	      |101       |
++------+----------+-----------+----------+
+
+Given the Employee table, write a SQL query that finds out managers with at least 5 direct report. For the above table, your SQL query should return:
+
++-------+
+| Name  |
++-------+
+| John  |
++-------+
+
+Note:
+No one would report to himself.
+
+Companies:
+Bloomberg
+
+
+#sql server
+#mysql
+#solution 1
+SELECT 
+      e.name
+  FROM 570_employees e
+  left join (
+  select managerid,
+		  count(*)  as n
+  FROM 570_employees
+  group by managerid) m
+  on e.id=m.managerid
+  where m.n>4;
+
+Create table 570_employees
+(id    int  not null   ,
+name  varchar(30) ,
+department    varchar(1)     ,
+managerid  int);
+
+Insert into 570_employees values
+(101   ,'John' 	  ,'A' 	      ,null      ),
+(102   ,'Dan' 	  ,'A' 	      ,101       ),
+(103   ,'James' 	  ,'A' 	      ,101       ),
+(104   ,'Amy' 	  ,'A' 	      ,101       ),
+(105   ,'Anne' 	  ,'A' 	      ,101       ),
+(106   ,'Ron' 	  ,'B' 	      ,101  );
