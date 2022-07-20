@@ -359,18 +359,6 @@ from(
 where t1.r=1
 
 
-
-#75
-SELECT 
-      e.[Name]
-  FROM [master].[dbo].[75_employee]e
-  left join (
-  select [ManagerId],
-		  count(*)  as n
-  FROM [master].[dbo].[75_employee]
-  group by [ManagerId]) m
-  on e.id=m.[ManagerId]
-  where m.n>4
 #69 Market Analysis 1
 SELECT 
       u.[user_id]  
