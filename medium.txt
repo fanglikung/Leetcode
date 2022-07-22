@@ -359,15 +359,7 @@ from(
 where t1.r=1
 
 
-#69 Market Analysis 1
-SELECT 
-      u.[user_id]  
-	  ,u.[join_date]
-	  ,sum(case when Year(o.[order_date]) ='2019' then 1 else 0 end)orders_in_2019
-  FROM [master].[dbo].[69_users]u
-  left join [master].[dbo].[69_orders] o
-  on o.[buyer_id]=u.[user_id]
-  group by u.[user_id],u.[join_date]
+
 #95 Monthly Transaction 2
 SELECT 
 	month
