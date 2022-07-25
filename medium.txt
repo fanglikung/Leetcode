@@ -358,36 +358,6 @@ from(
 	  )t1
 where t1.r=1
 
-
-
-#95 Monthly Transaction 2
-SELECT 
-	month
-	,[country]
-	,sum(case when [state]='approved' then 1 else 0 end)approved_count
-	,sum(case when [state]='approved' then [amount] else 0 end)approved_amount
-	,sum(case when [state]='chargeback' then 1 else 0 end)chargeback_count
-	,sum(case when [state]='chargeback' then [amount] else 0 end)chargeback_amount 
-from(
-	SELECT 
-		[country]
-		,FORMAT([trans_date], 'yyyy-MM')month    
-		,[state]
-		,[amount]
-	FROM [master].[dbo].[95_transactions]
-	union all
-	SELECT [country]
-		  , FORMAT([charge_date], 'yyyy-MM')month
-		  ,'chargeback' as  [state]
-		  ,[amount]
-	FROM [master].[dbo].[95_transactions]t
-	inner join
-	[master].[dbo].[95_chargebacks]c
-	on t.id=c.[trans_id]
-	)t1
-group by
-	t1.[country]
-	,t1.month
 #59 Movie Rating
 #my 1
 with a as(
