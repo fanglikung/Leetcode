@@ -92,6 +92,31 @@
 -- Daniel and Maria have rated 3 movies ("Avengers", "Frozen 2" and "Joker") but Daniel is smaller lexicographically.
 -- Frozen 2 and Joker have a rating average of 3.5 in February but Frozen 2 is smaller lexicographically.
 
+#2 solution 
+#SQL server
+select u1.name results      
+from(
+	SELECT 
+		  u.name,
+		  rank() over(order by count(movie_id) desc,u.name asc) as rk
+	  FROM [master].[dbo].[1341_movie_rating] r
+	  left join [1341_users] u
+	  on r.user_id=u.user_id
+	  group by r.user_id,u.name
+  ) u1
+where u1.rk=1;
+select m1.title results      
+from(
+	  SELECT 
+		  m.title,
+		  rank() over(order by avg( cast((r.rating)as decimal(9,2))) desc,m.title asc) as rk
+	  FROM [master].[dbo].[1341_movie_rating] r
+	  left join [1341_movies] m
+	  on r.movie_id=m.movie_id
+	  where FORMAT( r.created_at, 'yyyy-MM', 'en-US' ) ='2020-02'
+	  group by r.movie_id,m.title
+	  )m1
+where m1.rk=1;
 
 #1 solution
 #mysql
@@ -108,8 +133,6 @@ On a.user_id=u.user_id
 Order by a.c desc
 Limit 1;
 
-
-
 Select title
 from(
 Select 
@@ -123,7 +146,7 @@ On a.movie_id =u.movie_id
 Order by a.r desc
 Limit 1;
 
-#1 solution
+
 
 
 
