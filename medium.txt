@@ -358,58 +358,7 @@ from(
 	  )t1
 where t1.r=1
 
-#59 Movie Rating
-#my 1
-with a as(
-	select  t1.name
-			,t1.title
-			,dense_rank()over(order by t1.cn desc,t1.name desc) as rn
-			,dense_rank() over(order by t1.r desc,t1.title desc) as rr
-	from(
-		  SELECT u.name
-				,m.title
-			  ,count(r.[movie_id]) over (partition by r.[user_id]) as cn
-			  ,avg(cast(r.[rating]as decimal(9,2)))over(partition by r.[movie_id]) as r
-		  FROM [master].[dbo].[59_movie_rating] r
-		  left join [59_movies] m
-		  on r.[movie_id]=m.[movie_id]
-		  left join [59_users] u
-		  on r.[user_id]=u.[user_id]
-		  where year(r.created_at )='2020'
-	  )t1
-	  )
-select distinct name as results      
-from a 
-where rn=1
-union
-select distinct title
-from a 
-where rr=1
 
-#my2
-
-select u1.name results      
-from(
-	SELECT 
-		  u.name,
-		  rank() over(order by count(movie_id) desc,u.name asc) as rk
-	  FROM [master].[dbo].[59_movie_rating] r
-	  left join [59_users] u
-	  on r.user_id=u.user_id
-	  group by r.user_id,u.name
-  ) u1
-where u1.rk=1;
-select m1.title results      
-from(
-	  SELECT 
-		  m.title,
-		  rank() over(order by avg( cast((r.rating)as decimal(9,2))) desc,m.title asc) as rk
-	  FROM [master].[dbo].[59_movie_rating] r
-	  left join [59_movies] m
-	  on r.movie_id=m.movie_id
-	  group by r.movie_id,m.title
-	  )m1
-where m1.rk=1;
 #54 NPV Queries
 SELECT q.[id]
       ,q.[year]
