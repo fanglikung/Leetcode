@@ -359,13 +359,6 @@ from(
 where t1.r=1
 
 
-#54 NPV Queries
-SELECT q.[id]
-      ,q.[year]
-	  ,isnull(n.npv,0) as npv
-  FROM [master].[dbo].[54_queries] q
-  left join [54_npv] n
-  on q.id=n.id and q.year=n.year
 # 92 New users daily count
 select 
 	a.login_date login_date ,
