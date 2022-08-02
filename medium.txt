@@ -360,41 +360,7 @@ where t1.r=1
 
 
 
-#84
-with f as (
-SELECT [user1_id]
-      ,[user2_id]
-FROM [master].[dbo].[84_friendship] 
-  union 
-select [user2_id]
-      ,[user1_id]
-from [master].[dbo].[84_friendship])
 
-SELECT distinct t. recommended_page
-from(
-SELECT [user1_id]
-      ,[user2_id]
-	  ,l1.page_id
-	  ,l2.page_id recommended_page 
-  FROM  f
-  left join [84_likes] l1
-  on f.user1_id=l1.user_id
-  left join [84_likes] l2
-  on f.user2_id=l2.user_id
-  ) t
-  where [user1_id]=1 and t.page_id!=t.recommended_page 
-#other 
-select distinct page_id as recommended_page
-from [84_likes]
-where user_id 
-in (select user2_id as id
-from [84_friendship]
-where user1_id = 1 --or user2_id = 1 and user2_id !=1
-union all
-select user1_id
-from [84_friendship]
-where user2_id = 1) 
-and page_id not in (select page_id from [84_likes] where user_id = 1)
 
 #67 Product Price at a given date
 SELECT [product_id]
