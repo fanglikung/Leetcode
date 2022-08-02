@@ -362,20 +362,7 @@ where t1.r=1
 
 
 
-#90 Product Sales Analysis 3
-SELECT [product_id]
-      ,[year] as first_year 
-      ,[quantity]
-      ,[price]
-from(
-SELECT [product_id]
-      ,[year]
-      ,[quantity]
-      ,[price]
-	  ,rank()over(partition by [product_id] order by [year]asc) r
-  FROM [master].[dbo].[90_sales]
-  )a
-  where a.r=1
+
 
 #85 Project Employees 3
 SELECT a.[project_id]
