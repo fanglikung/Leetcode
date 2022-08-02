@@ -362,18 +362,6 @@ where t1.r=1
 
 
 
-#67 Product Price at a given date
-SELECT [product_id]
-      ,case when [change_date]<='2019-08-16' then [new_price] else 10 end as price 
-from(
-SELECT [product_id]
-      ,[new_price]
-      ,[change_date]
-	  ,rank()over(partition by [product_id] order by [change_date] desc) as r
-  FROM [master].[dbo].[67_products]
-  )a
-  where a.r=1
-
 #90 Product Sales Analysis 3
 SELECT [product_id]
       ,[year] as first_year 
