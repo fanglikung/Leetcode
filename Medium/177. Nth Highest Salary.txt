@@ -51,7 +51,7 @@ Select salary INTO s
 FROM (select salary,dense_rank()over(order by salary desc) r from 177_employee)a WHERE r = r_value;
   RETURN s;
 END//
-delimiter;
+;
 
 Create table 177_employee
 (id int,
