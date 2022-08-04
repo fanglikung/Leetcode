@@ -358,26 +358,6 @@ from(
 	  )t1
 where t1.r=1
 
-
-
-
-
-
-
-#85 Project Employees 3
-SELECT a.[project_id]
-      ,a.[employee_id]
-from(
-SELECT p.[project_id]
-      ,e.[employee_id]
-	  ,e.experience_years 
-	  ,rank()over(partition by p.[project_id] order by e.experience_years desc)r
-  FROM [master].[dbo].[85_project]p
-  left join [85_employee]e
-  on p.[employee_id]=e.[employee_id]
-  )a
-  where a.r=1
-
 #79 Rectangles Area
 SELECT o1.[id] as p1
 	  ,o2.[id] as p2
