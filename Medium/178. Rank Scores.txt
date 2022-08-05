@@ -1,0 +1,69 @@
+-- Write a SQL query to rank scores.
+-- If there is a tie between two scores, both should have the same ranking. 
+-- Note that after a tie, the next ranking number should be the next consecutive integer value. 
+-- In other words, there should be no "holes" between ranks.
+
+-- +----+-------+
+-- | Id | Score |
+-- +----+-------+
+-- | 1  | 3.50  |
+-- | 2  | 3.65  |
+-- | 3  | 4.00  |
+-- | 4  | 3.85  |
+-- | 5  | 4.00  |
+-- | 6  | 3.65  |
+-- +----+-------+
+
+-- For example, given the above Scores table, your query should generate the following report (order by highest score):
+
+-- +-------+---------+
+-- | score | Rank    |
+-- +-------+---------+
+-- | 4.00  | 1       |
+-- | 4.00  | 1       |
+-- | 3.85  | 2       |
+-- | 3.65  | 3       |
+-- | 3.65  | 3       |
+-- | 3.50  | 4       |
+-- +-------+---------+
+-- Important Note: For MySQL solutions, to escape reserved words used as column names, 
+-- you can use an apostrophe before and after the keyword. For example `Rank`.
+#1 solution 
+#SQL server
+IF OBJECT_ID (N'getNthHighestSalary', N'IF') IS NOT NULL  
+    DROP FUNCTION getNthHighestSalary;  
+GO  
+CREATE FUNCTION getNthHighestSalary(@N INT) RETURNS INT
+BEGIN
+  RETURN (
+      select distinct isnull( a.salary,0)as salary
+      from
+      (select salary, 
+      dense_rank() over(order by salary desc) as rk
+      from [50_employee]) a
+      where a.rk = @N
+  );
+END
+select dbo.getNthHighestSalary(2)
+--Invalid Object Name Error in Function in SQL
+--https://stackoverflow.com/questions/17967778/invalid-object-name-error-in-function-in-sql
+
+
+#1 solution
+#mysql
+
+Select score,dense_rank()over(order by score desc) Rank
+From 178_scores;
+
+
+
+Create table 178_scores
+(id tinyint,
+score numeric(3,1));
+Insert into 178_scores values
+(1  , 3.50  ),
+(2  , 3.65  ),
+(3  , 4.00  ),
+(4  , 3.85  ),
+(5  , 4.00  ),
+( 6  , 3.65);
