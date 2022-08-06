@@ -358,17 +358,7 @@ from(
 	  )t1
 where t1.r=1
 
-#79 Rectangles Area
-SELECT o1.[id] as p1
-	  ,o2.[id] as p2
-      ,abs(o1.x_value-o2.x_value)*abs(o1.y_value-o2.y_value) as area
-  FROM [master].[dbo].[79_points] o1
-  cross join [79_points] o2
-  where o1.id!=o2.id 
-  and o1.id<o2.id 
-  and o1.x_value-o2.x_value!=0
-  and o1.y_value-o2.y_value!=0
-  order by p1 asc, p2 asc
+
 #73 Reported Posts 2
 select  cast(round(avg(p) ,2)as decimal(9,2))average_daily_percent 
 from(
