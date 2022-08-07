@@ -357,20 +357,6 @@ from(
 	  FROM [master].[dbo].[63_enrollments]
 	  )t1
 where t1.r=1
-
-
-#73 Reported Posts 2
-select  cast(round(avg(p) ,2)as decimal(9,2))average_daily_percent 
-from(
-SELECT [action_date]
-	  ,case when sum(case when r.[post_id] is null then 0 else 1 end)=0 then 0 else cast(sum(case when r.[post_id] is null then 0 else 1 end) as decimal(9,2))/count(*) end as p
-  FROM [master].[dbo].[73_actions] a
-  left join [73_removals] r
-  on a.[post_id]=r.[post_id] and a.[action_date]<=r.[remove_date]
-  where a.action='report' and a.extra='spam'
-  group by [action_date]
-  )t1
-
 #71 Restaurant growth
 #my
 SELECT
