@@ -357,51 +357,7 @@ from(
 	  FROM [master].[dbo].[63_enrollments]
 	  )t1
 where t1.r=1
-#71 Restaurant growth
-#my
-SELECT
-	[visited_on]
-	, [average_amount]
-	, cast(round([amount],2) as decimal(9,2)) as [amount]
-	
-from(
-	SELECT 
-			max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING) as [visited_on]
-		  ,case when max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)!=max([visited_on])over() then
-		  avg(cast([amount] as decimal(9,2))) over(ORDER BY [visited_on]
-							ROWS BETWEEN current row AND 6 FOLLOWING)
-		  else sum(cast([amount] as decimal(9,2))) over(ORDER BY [visited_on]
-							ROWS BETWEEN current row AND UNBOUNDED FOLLOWING)/7
-		  end as amount       
-		  ,case when max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)!=max([visited_on])over() then
-		  sum([amount] ) over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)
-		  else sum([amount]) over(ORDER BY [visited_on]ROWS BETWEEN current row AND UNBOUNDED FOLLOWING)
-		  end as average_amount 
-		  ,datediff(day,[visited_on],max([visited_on])over(ORDER BY [visited_on]ROWS BETWEEN current row AND 6 FOLLOWING)) as diff
-	  
-	  FROM [master].[dbo].[71_customer]
-	  ) a
-where diff=6
-order by [visited_on]
 
-#other
-select visited_on, sum(amount) over(order by visited_on rows 6 preceding),
-round(avg(amount) over(order by visited_on rows 6 preceding),2)
-from 
-(
-	select visited_on, sum(amount) as amount
-	FROM [master].[dbo].[71_customer]
-	group by visited_on
-) a
-order by visited_on offset 6 rowsselect visited_on, sum(amount) over(order by visited_on rows 6 preceding),
-round(avg(amount) over(order by visited_on rows 6 preceding),2)
-from 
-(
-	select visited_on, sum(amount) as amount
-	FROM [master].[dbo].[71_customer]
-	group by visited_on
-) a
-order by visited_on offset 6 rows
 
 #76 Running total for different genders
 SELECT [gender]
