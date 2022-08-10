@@ -359,14 +359,6 @@ from(
 where t1.r=1
 
 
-#76 Running total for different genders
-SELECT [gender]
-      ,[day]
-	  ,sum([score_points])over(partition by [gender] order by [day] asc) total 
-  FROM [master].[dbo].[76_scores]
-  order by [gender]
-      ,[day]
-
 #70 Second degree follower
 SELECT [followee]as follower
 		,count(distinct [follower]) num        
