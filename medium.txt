@@ -358,13 +358,6 @@ from(
 	  )t1
 where t1.r=1
 
-#89 Shortest distance in a plane
-
-SELECT min(SQRT(abs(p1.[x]-p2.[x])*abs(p1.[x]-p2.[x])+ abs(p1.[y]-p2.[y])*abs(p1.[y]-p2.[y]))) as shortest 
-  FROM [master].[dbo].[89_point_2d] p1
-  cross join [89_point_2d] p2
-  where  p1.x!=p2.x or p1.y!=p2.y
-
 #53 Team scores in football match
 with a as 
 (SELECT [host_team],
