@@ -358,40 +358,7 @@ from(
 	  )t1
 where t1.r=1
 
-#53 Team scores in football match
-with a as 
-(SELECT [host_team],
-		case when [host_goals]>[guest_goals] then 3 
-			 when [host_goals]=[guest_goals] then 1 
-		else 0 end as host_goals,     
-		[guest_team],
-		case when [host_goals]>[guest_goals] then 0 
-			 when [host_goals]=[guest_goals] then 1 
-		else 3 end as guest_goals
-FROM [master].[dbo].[53_matches]),
-b as 
-(SELECT  [host_team] as team_id  ,
-		 host_goals as num_points 
- from a 
- union all
- SELECT [guest_team],
-		 guest_goals
- from a),
- c as 
- (select team_id,
-		 sum(num_points) as num_points 
-  from b 
-  group by team_id)
 
-select t.team_id,
-	   t.team_name,
-	   isnull(c.num_points,0) as num_points
-from [53_teams] t
-left join c
-on t.team_id=c.team_id
-order by 
-	c.num_points desc, 
-	t.team_id asc
 
 #58 Tree Node
 SELECT [id]
