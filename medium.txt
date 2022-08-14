@@ -358,15 +358,6 @@ from(
 	  )t1
 where t1.r=1
 
-
-
-#58 Tree Node
-SELECT [id]
-      ,case when [id] in (select id from [58_tree] where p_id is  null) then 'Root' 
-	  when [id] in (select [p_id] from [58_tree] where p_id is not null) then 'Inner'
-	  else 'Leaf' end as 'Type' 
-  FROM [master].[dbo].[58_tree] 
-
 #64 Unpopular Books
 SELECT b.[book_id]
       ,b.[name]
