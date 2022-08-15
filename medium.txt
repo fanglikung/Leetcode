@@ -358,17 +358,6 @@ from(
 	  )t1
 where t1.r=1
 
-#64 Unpopular Books
-SELECT b.[book_id]
-      ,b.[name]
-  FROM [master].[dbo].[64_books] b
-left join (SELECT [book_id]
-      ,sum([quantity])q
-  FROM [master].[dbo].[64_orders]
-  where datediff(year,[dispatch_date],'2019-06-23')<=1
-  group by [book_id])o
-  on b.book_id=o.book_id
-  where datediff(month,[available_from],'2019-06-23')>1  and isnull(o.q,0)<=10
 
 #88 Winning Candidate
 SELECT [Name]
