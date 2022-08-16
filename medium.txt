@@ -359,15 +359,6 @@ from(
 where t1.r=1
 
 
-#88 Winning Candidate
-SELECT [Name]
-  FROM [master].[dbo].[88_candidate]c
-  inner join (
-SELECT top(1)[candidateId]
-	  ,count([candidateId]) as n
-  FROM [master].[dbo].[88_vote]
-  group by [candidateId])v
-  on c.id=v.[candidateId]
 #108 Average Salary
 select distinct month,
 	    [department_id],
