@@ -1,0 +1,114 @@
+-- Table: Candidate
+
+-- +-----+---------+
+-- | id  | Name    |
+-- +-----+---------+
+-- | 1   | A       |
+-- | 2   | B       |
+-- | 3   | C       |
+-- | 4   | D       |
+-- | 5   | E       |
+-- +-----+---------+
+
+Create table 574_candidate
+(id int,
+name varchar(1));
+Insert into 574_candidate values
+(   1   , 'A'  ),
+(2   , 'B' ),
+(3   , 'C' ),
+(4   , 'D' ),
+(5   , 'E');
+-- Table: Vote
+
+-- +-----+--------------+
+-- | id  | CandidateId  |
+-- +-----+--------------+
+-- | 1   |     2        |
+-- | 2   |     4        |
+-- | 3   |     3        |
+-- | 4   |     2        |
+-- | 5   |     5        |
+-- +-----+--------------+
+-- id is the auto-increment primary key,
+-- CandidateId is the id appeared in Candidate table.
+-- Write a sql to find the name of the winning candidate, the above example will return the winner B.
+Create table 574_vote
+(id int not null AUTO_INCREMENT,
+candidateid int,
+Primary key(id));
+Insert into 574_vote values
+(1   ,     2        ),
+(2    ,    4        ),
+(3     ,   3        ),
+(4      ,  2        ),
+(5       , 5 );
+-- +------+
+-- | Name |
+-- +------+
+-- | B    |
+-- +------+
+-- Notes:
+
+-- You may assume there is no tie, in other words there will be only one winning candidate
+
+
+
+#1 solution 
+#SQL server
+
+SELECT [Name]
+  FROM [master].[dbo].[574_candidate]c
+  inner join (
+SELECT top(1)[candidateId]
+	  ,count([candidateId]) as n
+  FROM [master].[dbo].[574_vote]
+  group by [candidateId])v
+  on c.id=v.[candidateId]
+
+#1 solution
+#mysql
+
+Select name
+From 574_candidate c
+Join (select candidateid from 574_vote group by candidateid  order by count(candidateid) desc limit 1) v
+On c.id= v.candidateid;
+
+
+
+
+Create table 1341_movies(
+movie_id int,
+title varchar(10),
+Primary key(movie_id));
+
+Insert into 1341_movies values
+(1           , 'Avengers'),     
+(2           , 'Frozen 2'),
+(3           , 'Joker');
+
+
+Create table 1070_sales
+(sale_id      int   ,
+product_id   int   ,
+year         int   ,
+quantity     int   ,
+price        int ,
+Primary key(sale_id),
+index(product_id),
+Foreign key(product_id)references 1070_product(product_id));
+
+Insert into 1070_sales values
+(1       , 100        , 2008 , 10       , 5000  ),
+(2       , 100        , 2009 , 12       , 5000  ),
+(7       , 200        , 2011 , 15       , 9000 );
+
+Create table 1070_product
+(product_id    int     ,
+product_name  varchar (10),
+Primary key(product_id));
+
+Insert into 1070_product values
+(100        , 'Nokia'       ),
+(200        , 'Apple'   ),
+(300        ,'Samsung' );
