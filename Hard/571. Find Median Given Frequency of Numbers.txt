@@ -1,0 +1,46 @@
+-- The Numbers table keeps the value of number and its frequency.
+
+-- +----------+-------------+
+-- |  Number  |  Frequency  |
+-- +----------+-------------|
+-- |  0       |  7          |
+-- |  1       |  1          |
+-- |  2       |  3          |
+-- |  3       |  1          |
+-- +----------+-------------+
+-- In this table, the numbers are 0, 0, 0, 0, 0, 0, 0, 1, 2, 2, 2, 3, so the median is (0 + 0) / 2 = 0.
+
+-- +--------+
+-- | median |
+-- +--------|
+-- | 0.0000 |
+-- +--------+
+-- Write a query to find the median of all numbers and name the result as median.
+
+-- #1 solution
+-- # Mysql
+select avg(number) median
+from(
+select number ,frequency,sum(frequency)over(order by number asc) s1,sum(frequency)over() s2
+from 571_numbers)a
+where s1 between s2/2 and 1+s2/2;
+
+-- #2 solution
+-- # Mysql
+select avg(Number) as median from (
+    select n1.Number from 571_numbers n1 join 571_numbers n2 on n1.Number >= n2.Number
+        group by n1.Number
+        having
+        sum(n2.Frequency) >= (select sum(Frequency) from Numbers) / 2
+        and
+        sum(n2.Frequency) - avg(n1.Frequency) <= (select sum(Frequency) from Numbers) / 2
+) med;
+
+create table 571_numbers
+(number int,
+frequency int);
+insert into 571_numbers values
+(0       ,  7          ),
+(1       ,  1          ),
+(2       ,  3          ),
+(3       ,  1);
