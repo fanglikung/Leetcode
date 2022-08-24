@@ -470,24 +470,6 @@ from t1
   select * from t1 
   where r in (select r from t where rr>=3)
 
-#103 Market Analysis 2
-select  user_id seller_id,
-		case when i.item_id=o.[item_id] then 'yes' else 'no'end as '2nd_item_fav_brand' 
-from [103_users]	u
-left join(
-select [item_id]
-      ,[seller_id]
-from(
-	SELECT [item_id]
-		  ,[seller_id]
-		  ,rank()over(partition by seller_id order by order_date asc) r
-	 FROM [master].[dbo].[103_orders]
-	 )a
-	 where a.r=2
-  )o
-on u.user_id=o.seller_id
-left join [103_items]i
-on i.item_brand =u.favorite_brand
 
 #105 Median Employee Salary
 select id,company,salary
