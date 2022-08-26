@@ -1,0 +1,90 @@
+-- The Employee table holds all employees. The employee table has three columns: Employee Id, Company Name, and Salary.
+
+-- +-----+------------+--------+
+-- |Id   | Company    | Salary |
+-- +-----+------------+--------+
+-- |1    | A          | 2341   |
+-- |2    | A          | 341    |
+-- |3    | A          | 15     |
+-- |4    | A          | 15314  |
+-- |5    | A          | 451    |
+-- |6    | A          | 513    |
+-- |7    | B          | 15     |
+-- |8    | B          | 13     |
+-- |9    | B          | 1154   |
+-- |10   | B          | 1345   |
+-- |11   | B          | 1221   |
+-- |12   | B          | 234    |
+-- |13   | C          | 2345   |
+-- |14   | C          | 2645   |
+-- |15   | C          | 2645   |
+-- |16   | C          | 2652   |
+-- |17   | C          | 65     |
+-- +-----+------------+--------+
+
+
+-- Write a SQL query to find the median salary of each company. Bonus points if you can solve it without using any built-in SQL functions.
+
+-- +-----+------------+--------+
+-- |Id   | Company    | Salary |
+-- +-----+------------+--------+
+-- |5    | A          | 451    |
+-- |6    | A          | 513    |
+-- |12   | B          | 234    |
+-- |9    | B          | 1154   |
+-- |14   | C          | 2645   |
+-- +-----+------------+--------+
+
+
+-- #1 solution
+--#SQL Server
+select id,company,salary
+from
+(select *, 
+row_number() over(partition by company order by salary) as rn,
+count(*) over(partition by company) as cnt,
+count(*) over(partition by company)%2 as cm
+from [569_employee]) a
+where rn =cnt/2 or rn=case when cm=0 then (cnt/2)+1 else cnt/2 end
+
+-- #2 solution
+-- # Mysql
+select id,company,salary
+from(
+select id,company,salary,1.0000*count(id)over(partition by company ) c2,rank()over(partition by company order by salary asc,id asc)*1.0000 r
+from 569_employees)a
+where c2%2=0 and (r=c2/2 or r=1+c2/2) or c2%2!=0 and r between c2/2 and 1+(c2/2); 
+
+-- #2 solution
+-- # Mysql
+select e1.id, e1.Company, e1.Salary
+    from 569_employee e1, 569_employee e2
+    where e1.Company = e2.Company
+    group by e1.Company, e1.Salary
+    having sum(
+        case when e1.Salary = e2.Salary then 1 else 0 end
+    ) >= abs(sum(sign(e1.Salary - e2.Salary)))
+    order by e1.Id;
+
+create table 569_employees
+(id int,
+company varchar(1),
+salary int);
+insert into 569_employees values
+(1    , 'A'          , 2341   ),
+(2    , 'A'          , 341    ),
+(3    , 'A'          , 15     ),
+(4    , 'A'          , 15314  ),
+(5    , 'A'          , 451    ),
+(6    , 'A'          , 513    ),
+(7    , 'B'          , 15     ),
+(8    , 'B'          , 13     ),
+(9    , 'B'          , 1154   ),
+(10   , 'B'          , 1345   ),
+(11   , 'B'          , 1221   ),
+(12   , 'B'          , 234    ),
+(13   , 'C'          , 2345   ),
+(14   , 'C'          , 2645   ),
+(15   , 'C'          , 2645   ),
+(16   , 'C'          , 2652   ),
+(17   , 'C'          , 65);
