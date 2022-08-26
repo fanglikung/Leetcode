@@ -471,33 +471,5 @@ from t1
   where r in (select r from t where rr>=3)
 
 
-#105 Median Employee Salary
-select id,company,salary
-from
-(select *, 
-row_number() over(partition by company order by salary) as rn,
-count(*) over(partition by company) as cnt,
-count(*) over(partition by company)%2 as cm
-from [105_employee]) a
-where rn =cnt/2 or rn=case when cm=0 then (cnt/2)+1 else cnt/2 end
 
-#105 Median Employee Salary
-with a as(select e1.id, e1.company, e1.salary
-    from [105_employee] e1
-	inner join [105_employee] e2
-    on e1.company = e2.company
-    group by e1.id, e1.company, e1.salary
-	having sum(
-        case when e1.salary = e2.salary then 1 else 0 end
-    ) >=abs(sum(sign(e1.salary - e2.salary)))
-  ),
-b as (select a.*,e.c from a
-	join 
-	(select company,count(*)%2 c
-	from [105_employee]
-	group by company) e
-	on e.company=a.company)
 
-	select id,company,salary from b
-	where c=1 and (id)in(select min(id) from a group by company) or c=0 
-	order by company,salary
