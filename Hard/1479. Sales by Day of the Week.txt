@@ -1,0 +1,216 @@
+-- Table: Orders
+
+-- +---------------+---------+
+-- | Column Name   | Type    |
+-- +---------------+---------+
+-- | order_id      | int     |
+-- | customer_id   | int     |
+-- | order_date    | date    | 
+-- | item_id       | varchar |
+-- | quantity      | int     |
+-- +---------------+---------+
+-- (ordered_id, item_id) is the primary key for this table.
+-- This table contains information of the orders placed.
+-- order_date is the date when item_id was ordered by the customer with id customer_id.
+
+-- Table: Items
+
+-- +---------------------+---------+
+-- | Column Name         | Type    |
+-- +---------------------+---------+
+-- | item_id             | varchar |
+-- | item_name           | varchar |
+-- | item_category       | varchar |
+-- +---------------------+---------+
+-- item_id is the primary key for this table.
+-- item_name is the name of the item.
+-- item_category is the category of the item.
+
+
+-- You are the business owner and would like to obtain a sales report for category items and day of the week.
+
+-- Write an SQL query to report how many units in each category have been ordered on each day of the week.
+
+-- Return the result table ordered by category.
+
+-- The query result format is in the following example:
+
+ 
+
+-- Orders table:
+-- +------------+--------------+-------------+--------------+-------------+
+-- | order_id   | customer_id  | order_date  | item_id      | quantity    |
+-- +------------+--------------+-------------+--------------+-------------+
+-- | 1          | 1            | 2020-06-01  | 1            | 10          |
+-- | 2          | 1            | 2020-06-08  | 2            | 10          |
+-- | 3          | 2            | 2020-06-02  | 1            | 5           |
+-- | 4          | 3            | 2020-06-03  | 3            | 5           |
+-- | 5          | 4            | 2020-06-04  | 4            | 1           |
+-- | 6          | 4            | 2020-06-05  | 5            | 5           |
+-- | 7          | 5            | 2020-06-05  | 1            | 10          |
+-- | 8          | 5            | 2020-06-14  | 4            | 5           |
+-- | 9          | 5            | 2020-06-21  | 3            | 5           |
+-- +------------+--------------+-------------+--------------+-------------+
+
+-- Items table:
+-- +------------+----------------+---------------+
+-- | item_id    | item_name      | item_category |
+-- +------------+----------------+---------------+
+-- | 1          | LC Alg. Book   | Book          |
+-- | 2          | LC DB. Book    | Book          |
+-- | 3          | LC SmarthPhone | Phone         |
+-- | 4          | LC Phone 2020  | Phone         |
+-- | 5          | LC SmartGlass  | Glasses       |
+-- | 6          | LC T-Shirt XL  | T-Shirt       |
+-- +------------+----------------+---------------+
+
+-- Result table:
+-- +------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+-- | Category   | Monday    | Tuesday   | Wednesday | Thursday  | Friday    | Saturday  | Sunday    |
+-- +------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+-- | Book       | 20        | 5         | 0         | 0         | 10        | 0         | 0         |
+-- | Glasses    | 0         | 0         | 0         | 0         | 5         | 0         | 0         |
+-- | Phone      | 0         | 0         | 5         | 1         | 0         | 0         | 10        |
+-- | T-Shirt    | 0         | 0         | 0         | 0         | 0         | 0         | 0         |
+-- +------------+-----------+-----------+-----------+-----------+-----------+-----------+-----------+
+-- On Monday (2020-06-01, 2020-06-08) were sold a total of 20 units (10 + 10) in the category Book (ids: 1, 2).
+-- On Tuesday (2020-06-02) were sold a total of 5 units  in the category Book (ids: 1, 2).
+-- On Wednesday (2020-06-03) were sold a total of 5 units in the category Phone (ids: 3, 4).
+-- On Thursday (2020-06-04) were sold a total of 1 unit in the category Phone (ids: 3, 4).
+-- On Friday (2020-06-05) were sold 10 units in the category Book (ids: 1, 2) and 5 units in Glasses (ids: 5).
+-- On Saturday there are no items sold.
+-- On Sunday (2020-06-14, 2020-06-21) were sold a total of 10 units (5 +5) in the category Phone (ids: 3, 4).
+-- There are no sales of T-Shirt.
+
+
+
+#solution 1
+#SQL Server
+select 
+	category,
+	isnull(Monday,0)Monday , 
+	isnull(Tuesday,0)Tuesday , 
+	isnull(Wednesday,0)Wednesday , 
+	isnull(Thursday,0)Thursday  , 
+	isnull(Friday,0)Friday   , 
+	isnull(Saturday,0)Saturday  , 
+	isnull(Sunday,0)Sunday
+from(
+SELECT 
+		[item_category] as category,
+		DATENAME(Weekday, [order_date]) as w,
+        [quantity]
+  FROM [master].[dbo].[1479_orders]o
+  left join [1479_items]i
+  on o.[item_id]=i.[item_id]
+  )a
+  PIVOT (
+	sum([quantity]) 
+	FOR w IN (Monday , Tuesday , Wednesday , Thursday  , Friday   , Saturday  , Sunday )
+) p
+order by category
+
+#solution 2
+#SQL Server
+#user case when and group by rather than pivot
+ with a as (
+  SELECT 
+		[item_category] as category,
+		DATENAME(Weekday, [order_date]) as w,
+        sum([quantity]) q
+  FROM [master].[dbo].[1479_orders]o
+  left join [1479_items]i
+  on o.[item_id]=i.[item_id]
+  group by [item_category],DATENAME(Weekday, [order_date])
+ )
+ select category,
+		sum(case when w='Monday'  then q else 0 end)  Monday,
+		sum(case when w='Tuesday'  then q else 0 end ) Tuesday,
+		sum(case when w='Wednesday'  then q else 0 end)  Wednesday,
+		sum(case when w='Thursday'  then q else 0 end)  Thursday,
+		sum(case when w='Friday'  then q else 0 end)  Friday,
+		sum(case when w='Saturday'  then q else 0 end)  Saturday,
+		sum(case when w='Sunday'  then q else 0 end)  Sunday
+from a
+group by category
+
+#solution 3
+#SQL Server
+#use dynamic sql
+DECLARE @colnameList varchar(200)
+SET @colnameList = null
+SELECT @colnameList= ISNULL(@colnameList + ',','')
++ QUOTENAME(w)
+FROM (SELECT DISTINCT w FROM [1479_ItemsOrders]) a;
+
+DECLARE @colnameListvalue NVARCHAR(MAX)
+SELECT @colnameListvalue 
+    =  ISNULL(@colnameListvalue + ',','')
+    +'ISNULL(' + QUOTENAME(w) + ', 0) AS '
+    + QUOTENAME(w)
+FROM (SELECT DISTINCT w FROM [1479_ItemsOrders]) b;
+
+
+DECLARE @SQLQuery NVARCHAR(MAX)
+SET @SQLQuery =
+'SELECT category ,'+ @colnameListvalue + '
+FROM [1479_ItemsOrders] c
+PIVOT 
+( Sum(q)
+FOR w IN ('+@colnameList+') ) as pvt'
+
+EXEC(@SQLQuery)
+
+#refernce to 
+https://sqlhints.com/2015/05/30/how-to-replace-null-value-by-0-in-the-dynamic-pivot-result-sql-server/?subscribe=success#subscribe-blog-blog_subscription-3
+
+
+
+#solution 1
+#Mysql
+select item_category as category,
+    sum(case when dayofweek(order_date) = 2 then quantity else 0 end) as Monday,
+    sum(case when dayofweek(order_date) = 3 then quantity else 0 end) as Tuesday,
+    sum(case when dayofweek(order_date) = 4 then quantity else 0 end) as Wednesday,
+    sum(case when dayofweek(order_date) = 5 then quantity else 0 end) as Thursday,
+    sum(case when dayofweek(order_date) = 6 then quantity else 0 end) as Friday,
+    sum(case when dayofweek(order_date) = 7 then quantity else 0 end) as Saturday,
+    sum(case when dayofweek(order_date) = 1 then quantity else 0 end) as Sunday
+from 1479_items i left join 1479_orders o on i.item_id = o.item_id
+group by item_category
+order by item_category;
+
+create table 1479_items
+(item_id              int,
+item_name            varchar(30) ,
+item_category        varchar(30),
+primary key(item_id));
+
+insert into 1479_items values
+(1          ,'LC Alg. Book','Book'),          
+(2          ,'LC DB. Book','Book'),          
+(3          ,'LC SmarthPhone','Phone' ),        
+(4          ,'LC Phone 2020','Phone'   ),      
+(5          ,'LC SmartGlass','Glasses'   ),    
+(6          ,'LC T-Shirt XL','T-Shirt');
+
+create table 1479_orders
+(order_id       int     ,
+customer_id    int     ,
+order_date     date    , 
+item_id        int ,
+quantity       int,
+primary key(order_id, item_id) ,
+index(item_id),
+constraint fk_1479_orders_item_id_1479_items_item_id foreign key(item_id)references 1479_items(item_id)ON DELETE CASCADE ON UPDATE CASCADE);
+
+insert into 1479_orders values
+(1          , 1            ,'2020-06-01'  , 1            , 10          ),
+(2          , 1            ,'2020-06-08'  , 2            , 10          ),
+(3          , 2            ,'2020-06-02'  , 1            , 5           ),
+(4          , 3            ,'2020-06-03'  , 3            , 5           ),
+(5          , 4            ,'2020-06-04'  , 4            , 1           ),
+(6          , 4            ,'2020-06-05'  , 5            , 5           ),
+(7          , 5            ,'2020-06-05'  , 1            , 10          ),
+(8          , 5            ,'2020-06-14'  , 4            , 5           ),
+(9          ,5            ,'2020-06-21'  , 3            , 5);
