@@ -1,11 +1,4 @@
-#105
-select America,Asia,Europe
-from(
-SELECT  [name]
-      ,[continent]
-	  ,ROW_NUMBER()over(partition by continent order by name) as r
-  FROM [master].[dbo].[105_student])s
-  pivot( max(name)for continent in (America,Asia,Europe))pv;
+
 #114 Total sales amount by year
 #1
 with cte as (
