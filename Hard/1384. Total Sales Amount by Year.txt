@@ -1,0 +1,195 @@
+-- Table: Product
+
+-- +---------------+---------+
+-- | Column Name   | Type    |
+-- +---------------+---------+
+-- | product_id    | int     |
+-- | product_name  | varchar |
+-- +---------------+---------+
+-- product_id is the primary key for this table.
+-- product_name is the name of the product.
+ 
+
+-- Table: Sales
+
+-- +---------------------+---------+
+-- | Column Name         | Type    |
+-- +---------------------+---------+
+-- | product_id          | int     |
+-- | period_start        | varchar |
+-- | period_end          | date    |
+-- | average_daily_sales | int     |
+-- +---------------------+---------+
+-- product_id is the primary key for this table. 
+-- period_start and period_end indicates the start and end date for sales period, both dates are inclusive.
+
+
+-- The average_daily_sales column holds the average daily sales amount of the items for the period.
+
+-- Write an SQL query to report the Total sales amount of each item for each year, with corresponding product name, product_id, product_name and report_year.
+
+-- Dates of the sales years are between 2018 to 2020. Return the result table ordered by product_id and report_year.
+
+-- The query result format is in the following example:
+
+
+-- Product table:
+-- +------------+--------------+
+-- | product_id | product_name |
+-- +------------+--------------+
+-- | 1          | LC Phone     |
+-- | 2          | LC T-Shirt   |
+-- | 3          | LC Keychain  |
+-- +------------+--------------+
+
+-- Sales table:
+-- +------------+--------------+-------------+---------------------+
+-- | product_id | period_start | period_end  | average_daily_sales |
+-- +------------+--------------+-------------+---------------------+
+-- | 1          | 2019-01-25   | 2019-02-28  | 100                 |
+-- | 2          | 2018-12-01   | 2020-01-01  | 10                  |
+-- | 3          | 2019-12-01   | 2020-01-31  | 1                   |
+-- +------------+--------------+-------------+---------------------+
+
+-- Result table:
+-- +------------+--------------+-------------+--------------+
+-- | product_id | product_name | report_year | total_amount |
+-- +------------+--------------+-------------+--------------+
+-- | 1          | LC Phone     |    2019     | 3500         |
+-- | 2          | LC T-Shirt   |    2018     | 310          |
+-- | 2          | LC T-Shirt   |    2019     | 3650         |
+-- | 2          | LC T-Shirt   |    2020     | 10           |
+-- | 3          | LC Keychain  |    2019     | 31           |
+-- | 3          | LC Keychain  |    2020     | 31           |
+-- +------------+--------------+-------------+--------------+
+-- LC Phone was sold for the period of 2019-01-25 to 2019-02-28, and there are 35 days for this period. Total amount 35*100 = 3500. 
+-- LC T-shirt was sold for the period of 2018-12-01 to 2020-01-01, and there are 31, 365, 1 days for years 2018, 2019 and 2020 respectively.
+-- LC Keychain was sold for the period of 2019-12-01 to 2020-01-31, and there are 31, 31 days for years 2019 and 2020 respectively.
+
+#solution 1
+#SQL Server
+#only considering 2018,2019,2020
+with cte as (
+select 
+	product_id,
+	DATEPART(year, period_start) as ys,
+	DATEPART(year, period_start) as ysadd,
+	DATEPART(year, period_end) as ye,
+	period_start,
+	period_end,
+	average_daily_sales
+from [114_sales]
+union  all
+select 
+	product_id,
+	ys,
+	ysadd+1 ,
+	ye,
+	period_start,
+	period_end,
+	average_daily_sales
+from cte
+where ysadd<ye)
+SELECT 
+	c.product_id,
+	p.product_name,
+	ysadd as report_year,
+	case when ysadd=ys and ysadd=ye then (DATEDIFF(day,period_start,period_end)+1)*average_daily_sales
+    when  ys<ysadd and ysadd=ye then DATEDIFF(day,datefromparts(ysadd-1, 12, 31),period_end)*average_daily_sales
+	when  ys=ysadd and ysadd<ye then DATEDIFF(day,period_start,datefromparts(ysadd+1, 1, 1))*average_daily_sales
+	else DATEDIFF(day,datefromparts(ysadd-1, 12, 31),datefromparts(ysadd, 12, 31))*average_daily_sales end as total_amount
+from cte c
+join [1384_product] p
+on c.product_id=p.product_id
+where ys>=2018 and ye<=2020
+order by c.product_id,ysadd;
+select * from [1384_sales];
+
+#solution 1
+#MySQL
+#considering more then three years
+with recursive r as
+(select product_id ,
+	 period_start , 
+	period_end  ,
+	 average_daily_sales,
+	year(period_end)-year(period_start) d,
+	year(period_end)-year(period_start) maxd
+from 1384_sales
+union all
+select product_id , 
+	period_start , 
+	period_end  , 
+	average_daily_sales,
+	d-1 ,
+	maxd
+from r
+where d>0)
+select p.product_id,
+	product_name ,
+	year(period_start)+d report_year,
+	case when 0<d and d<maxd then average_daily_sales *DAYOFYEAR(CONCAT(YEAR(period_start)+d,'-12-31')) 
+	when 0=d and d=maxd then average_daily_sales*(datediff(period_end, period_start )+1) 
+	when 0<d and d=maxd then average_daily_sales *(datediff(period_end, MAKEDATE(year(period_end),1))+1 )
+	else average_daily_sales *(datediff( CONCAT(YEAR(period_start),'-12-31'), period_start)+1 ) end as total_amount 
+from r
+join 1384_product p
+on r.product_id=p.product_id
+order by product_id,report_year;
+
+
+#solution 1
+#MySQL
+#only considering 2018,2019,2020
+SELECT
+    b.product_id,
+    a.product_name,
+    a.yr AS report_year,
+    CASE 
+        WHEN YEAR(b.period_start)=YEAR(b.period_end) AND a.yr=YEAR(b.period_start) THEN DATEDIFF(b.period_end,b.period_start)+1
+        WHEN a.yr=YEAR(b.period_start) THEN DATEDIFF(DATE_FORMAT(b.period_start,'%Y-12-31'),b.period_start)+1
+        WHEN a.yr=YEAR(b.period_end) THEN DAYOFYEAR(b.period_end) 
+        WHEN a.yr>YEAR(b.period_start) AND a.yr<YEAR(b.period_end) THEN 365
+        ELSE 0
+    END * average_daily_sales AS total_amount
+FROM
+    (SELECT product_id,product_name,'2018' AS yr FROM 1384_product
+    UNION
+    SELECT product_id,product_name,'2019' AS yr FROM 1384_product
+    UNION
+    SELECT product_id,product_name,'2020' AS yr FROM 1384_product) a
+    JOIN 
+    1384_sales b
+    ON a.product_id=b.product_id  
+HAVING total_amount > 0
+ORDER BY b.product_id,a.yr;
+
+
+
+create table 1384_product
+(product_id int,
+product_name varchar(15),
+primary key(product_id));
+insert into 1384_product values
+(1          , 'LC Phone'     ),
+(2          , 'LC T-Shirt'   ),
+(3          , 'LC Keychain' );
+
+create table 1384_sales
+(product_id           int     ,
+period_start         date ,
+period_end           date    ,
+average_daily_sales  int,
+primary key(product_id),
+constraint fk_1384_sales_product_id_1384_product_product_id foreign key(product_id) references 1384_product(product_id) on delete cascade on update cascade);
+
+insert into 1384_sales values
+(1          , '2019-01-25'   , '2019-02-28'  , 100                 ),
+(2          , '2018-12-01'   , '2020-01-01'  , 10                  ),
+(3          , '2019-12-01'   , '2020-01-31'  , 1 );
+
+
+
+
+
+
