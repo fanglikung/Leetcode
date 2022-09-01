@@ -137,19 +137,3 @@ on s.spend_date=b.spend_date and s.[platform]=b.[platform]
   on t.transactions_count =t1.c
   order by transactions_count 
 
-#98 Trips and Users
-select  [request_at]  Day ,
-		cast(round(cast(sum(case when [status]!='completed' then 1 else 0 end) as decimal(9,2))/count(*),2)as decimal(9,2))'Cancellation Rate'
-from(
- SELECT [client_id]
-      ,[driver_id]
-      ,[status]
-      ,[request_at]
-  FROM [master].[dbo].[98_trips] t
-  join[98_users]p
-  on t.[client_id]=p.users_id
-  join[98_users]p1
-  on t.[driver_id]=p1.users_id
-  where p.banned !='Yes' and p1.banned !='Yes' and[request_at] between '2013-10-01' and '2013-10-03'
-)a
-group by [request_at]
