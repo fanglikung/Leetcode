@@ -54,9 +54,26 @@ with b as (
 select id,visit_date,people
 from 601_stadium 
 where people>=100)
-select id,visit_date,people, id-row_number()over(order by visit_date asc) as r
-from b
+select b.id,visit_date,people, (b.id-row_number()over(order by visit_date asc) ) as r 
+from b 
 where r in (select r from b group by r having count(*)>2); 
+
+
+-- #2 solution
+--#Mysql
+select 
+	id,
+	visit_date,
+	people
+	
+from(
+select 
+	*,
+	lead(id,2)over(order by visit_date)-id as lead ,
+	id-lag(id,2)over(order by visit_date) as lag
+from 601_stadium
+where people>=100)s
+where lead=2 or lag=2;
 
 
 create table 601_stadium
