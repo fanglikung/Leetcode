@@ -1,0 +1,43 @@
+create table nums(
+    k int,
+    k2 int,
+    n int,
+    primary key(k,k2)
+); -- []
+create index on nums(n); -- {}
+
+insert int nums(k,n)values
+    (0,2),
+    (1,7),
+    (2,11),
+    (3,15);
+
+select a.k,b.k
+from nums a
+join nums b
+where b.n=target-a.n and a.k!=b.k;
+
+select
+    a.k,
+    (select b.k from b where b.n=target-a.n)
+from nums a;
+
+class Solution(object):
+    def twoSum(self, nums, target):
+        d={}
+        for i in range(len(nums)):
+            d[nums[i]]=i
+        for i in range(len(nums)):
+            if target-nums[i] in d and d[target-nums[i]]!=i:
+                return[i,d[target-nums[i]]]
+class Solution(object):
+    def twoSum(self, nums, target):
+        d={}
+        for i in range(len(nums)):
+            d[nums[i]]=i
+        return[
+            [i,d[target-nums[i]]]
+            for i in range(len(nums))
+            if target-nums[i] in d and d[target-nums[i]]!=i
+        ][0]
+print(Solution().twoSum([2,7,11,15],9))
