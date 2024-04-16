@@ -1,0 +1,43 @@
+#9. Palindrome Number##string
+class Solution:
+    def isPalindrome(self, x: int) -> bool:
+        y=str(x)
+        if x<0 :
+            return 0
+        elif len(y)==1:
+            return 1
+        else:
+            for i in range(len(y)//2):
+                if y[i]!=y[len(y)-1-i]: 
+                    return 0 
+            return 1       
+#9. Palindrome Number##int
+class Solution:
+    def isPalindrome(self, x: int) -> bool:
+        if x<0 :
+            return 0
+        elif x==0:
+            return 1  
+        else:
+            y=int(math.log(x,10))
+            for i in range(0,y+1):
+                if (x//(10**i)%10)!=(x//(10**(y-i))%10): 
+                    return 0 
+            return 1      
+#9. Palindrome Number##fastest
+class Solution:
+    def isPalindrome(self, x: int) -> bool:
+        return str(x)[::-1] == str(x)
+            return 1
+
+#9. Palindrome Number##baby version
+class Solution:
+    def isPalindrome(self, x: int) -> bool:
+        try:
+            y=int(math.log(x,10))
+            return all(
+                (x//(10**i)%10)==(x//(10**(y-i))%10) ##all ()全稱量化，每一個結果檢查一次。 any()存在量化
+                for i in range((y+1)//2)
+            )
+        except ValueError:
+            return x==0
