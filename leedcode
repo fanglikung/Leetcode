@@ -94,3 +94,47 @@ class Solution:
             (1 if d[s[i]]>=d[s[i+1]] else -1)*d[s[i]]
             for i in range(len(s)-1)
         )+d[s[-1]]
+
+
+#14. Longest Common Prefix #baby (炫炮版)
+class Solution:
+    def longestCommonPrefix(self, strs: List[str]) -> str:
+        s0=strs[0]
+        l=len(s0)
+        return s0[:next(
+            i
+            for i in range(l+1)
+            if any(not(i<min(l,len(s)) and s0[i]==s[i])for s in strs)
+        )]
+#14. Longest Common Prefix #baby
+class Solution:
+    def longestCommonPrefix(self, strs: List[str]) -> str:
+        i=0
+        try:
+            while all(strs[0][i]==s[i]for s in strs):
+                i+=1
+        except IndexError:
+            pass
+        return strs[0][:i]
+#14. Longest Common Prefix #baby
+class Solution:
+    def longestCommonPrefix(self, strs: List[str]) -> str:
+        try:
+            for i in range(len(strs[0])):
+                if any(strs[0][i]!=strs[j][i]for j in range(len(strs))):
+                    return strs[0][:i]
+            return strs[0]
+        except IndexError:
+            return strs[0][:i]
+
+#14. Longest Common Prefix #fangli
+class Solution:
+    def longestCommonPrefix(self, strs: List[str]) -> str:
+        try:
+            for i in range(len(strs[0])):
+                for j in range(len(strs)):
+                    if strs[0][i]!=strs[j][i]:
+                        return strs[0][0:i]
+            return strs[0]    
+        except IndexError:
+            return strs[0][0:i]  
