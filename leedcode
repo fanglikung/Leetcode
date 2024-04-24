@@ -138,3 +138,16 @@ class Solution:
             return strs[0]    
         except IndexError:
             return strs[0][0:i]  
+#20. Valid Parentheses
+class Solution:
+    def isValid(self, s: str) -> bool:
+        d={'(':')','[':']','{':'}'}
+        l=[]
+        for i in s:
+            if l and d[l[-1]]==i:
+                l.pop()
+            elif i in d:
+                l.append(i)
+            else:
+                return 0
+        return not l
